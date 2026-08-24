@@ -24,7 +24,6 @@
         <div>
           <div class="logo-title-row">
             <h1 class="logo-title">Software Blueprint AI</h1>
-            <span class="badge badge-accent">Module 1 + 2</span>
           </div>
           <p class="logo-subtitle">Autonomous Multi-Agent Software Requirements Specification & Project Planning</p>
         </div>
@@ -54,9 +53,10 @@
       <div class="console-header">
         <div class="console-title-group">
           <h2 class="console-title">Describe Your Software Project Idea</h2>
-          <p class="console-desc">The LangGraph orchestration pipeline will elicit requirements (Module 1) and synthesize an engineering project plan (Module 2).</p>
+          <p class="console-desc">The LangGraph orchestration pipeline will elicit requirements and synthesize an engineering project plan.</p>
         </div>
       </div>
+
 
       <!-- Quick Template Chips -->
       <div class="template-chips-row">
@@ -108,7 +108,7 @@
         <div class="loading-spinner"></div>
         <div class="loading-details">
           <h3 id="loadingStage" class="loading-stage">Agent Pipeline Running...</h3>
-          <p id="loadingDescription" class="loading-desc">Module 1 is eliciting stakeholders, functional requirements, NFRs, constraints, and ambiguities...</p>
+          <p id="loadingDescription" class="loading-desc">Eliciting stakeholders, functional requirements, NFRs, constraints, and ambiguities...</p>
         </div>
         <div class="agent-steps-progress">
           <div class="progress-step active" id="stepReq">
@@ -185,11 +185,11 @@
           </button>
           <button type="button" class="tab-btn" data-tab="tabRequirements">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-            Module 1: Requirements (SRS)
+            Requirements (SRS)
           </button>
           <button type="button" class="tab-btn" data-tab="tabProjectPlan">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-            Module 2: Project Plan
+            Project Plan
           </button>
           <button type="button" class="tab-btn" data-tab="tabTraceability">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
@@ -256,7 +256,7 @@
           </div>
         </div>
 
-        <!-- TAB 2: MODULE 1 (REQUIREMENTS) -->
+        <!-- TAB 2: REQUIREMENTS -->
         <div id="tabRequirements" class="tab-pane">
           <!-- Stakeholders Grid -->
           <div class="content-card">
@@ -289,11 +289,11 @@
           </div>
         </div>
 
-        <!-- TAB 3: MODULE 2 (PROJECT PLAN) -->
+        <!-- TAB 3: PROJECT PLAN -->
         <div id="tabProjectPlan" class="tab-pane">
           <!-- Modules Breakdown -->
           <div class="content-card">
-            <h3 class="card-title">Logical Subsystem Modules (MOD-xxx)</h3>
+            <h3 class="card-title">Logical Subsystems (MOD-xxx)</h3>
             <div id="modulesContainer" class="modules-grid"></div>
           </div>
 
@@ -352,8 +352,8 @@
   </main>
 
   <footer class="app-footer">
-    <p>Software Blueprint AI &copy; Research Prototype &bull; Multi-Agent Requirements Engineering &bull; Local Ollama Qwen 2.5 3B</p>
   </footer>
+
 
   <script src="/static/app.js"></script>
 </body>

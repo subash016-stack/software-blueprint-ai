@@ -173,14 +173,15 @@ document.addEventListener("DOMContentLoaded", () => {
     // Simulate Agent Step Progression
     stepReq.classList.add("active");
     stepPlan.classList.remove("active");
-    loadingStage.textContent = "Executing Module 1: Requirement Analysis Agent...";
+    loadingStage.textContent = "Executing Requirement Analysis Agent...";
     loadingDescription.textContent = "Analyzing stakeholders, eliciting functional & non-functional requirements, constraints, and ambiguities...";
 
     const stepInterval = setTimeout(() => {
       stepPlan.classList.add("active");
-      loadingStage.textContent = "Executing Module 2: Project Planning Agent...";
-      loadingDescription.textContent = "Synthesizing cohesive modules, DAG task scheduling, effort hours, milestones, and development roadmap...";
+      loadingStage.textContent = "Executing Project Planning Agent...";
+      loadingDescription.textContent = "Synthesizing cohesive subsystems, DAG task scheduling, effort hours, milestones, and development roadmap...";
     }, 4500);
+
 
     try {
       const response = await fetch("/generate", {
