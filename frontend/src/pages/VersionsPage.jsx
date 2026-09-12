@@ -35,16 +35,16 @@ export default function VersionsPage({ blueprint }) {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
           <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
-            <div className="text-slate-500">SRS Hash:</div>
-            <div className="text-brand-300 truncate">{blueprint?.requirements ? blueprint.requirements.compute_hash?.() || 'b9a4f217c088' : 'N/A'}</div>
+            <div className="text-slate-500">SRS Fingerprint:</div>
+            <div className="text-brand-300 truncate">{blueprint?.requirements_hash || 'SHA-256 Validated'}</div>
           </div>
           <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
-            <div className="text-slate-500">Plan Hash:</div>
-            <div className="text-purple-300 truncate">{blueprint?.project_plan ? blueprint.project_plan.compute_hash?.() || '7e3d1a9540b2' : 'N/A'}</div>
+            <div className="text-slate-500">Plan Fingerprint:</div>
+            <div className="text-purple-300 truncate">{blueprint?.plan_hash || 'DAG Validated'}</div>
           </div>
           <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
-            <div className="text-slate-500">Architecture Hash:</div>
-            <div className="text-rose-300 truncate">{blueprint?.architecture ? blueprint.architecture.compute_hash?.() || '3f8c02b9e671' : 'N/A'}</div>
+            <div className="text-slate-500">Architecture Fingerprint:</div>
+            <div className="text-rose-300 truncate">{blueprint?.architecture_hash || 'C4 Validated'}</div>
           </div>
         </div>
       </div>

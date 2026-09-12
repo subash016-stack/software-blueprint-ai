@@ -644,6 +644,19 @@ class CompleteBlueprint(BaseModel):
     rag_recommendations: List[GroundedRecommendation] = Field(default_factory=list)
     validation_report: Optional[ValidationReport] = None
     version_history: List[BlueprintVersionSummary] = Field(default_factory=list)
+    requirements_hash: Optional[str] = None
+    plan_hash: Optional[str] = None
+    architecture_hash: Optional[str] = None
+
+    @model_validator(mode="after")
+    def populate_hashes(self) -> "CompleteBlueprint":
+        if not self.requirements_hash and self.requirements:
+            self.requirements_hash = self.requirements.compute_hash()
+        if not self.plan_hash and self.project_plan:
+            self.plan_hash = self.project_plan.compute_hash()
+        if not self.architecture_hash and self.architecture:
+            self.architecture_hash = self.architecture.compute_hash()
+        return self
 
 
 # ==========================================
