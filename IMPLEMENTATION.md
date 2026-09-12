@@ -42,12 +42,11 @@ flowchart TD
 
 ---
 
-## 3. Technology Stack & Hardware Optimization
+## 3. Technology Stack & Multi-Agent Architecture
 
-- **Host Machine**: Intel i5-12450H (8 Cores), 16 GB RAM, NVIDIA RTX 2050 4 GB VRAM.
 - **Backend Framework**: Python 3.11+, FastAPI, Uvicorn, Pydantic v2, SQLAlchemy 2.
 - **Multi-Agent Orchestration**: LangGraph, LangChain-Core.
-- **Local AI Engines**: Ollama (`qwen3:4b` generation, `qwen3-embedding:0.6b` vector embeddings).
+- **Local AI Engines**: Ollama (local generation and vector embeddings).
 - **Knowledge Retrieval & Vector Store**: Qdrant vector database + in-memory cosine fallback.
 - **Cache & Performance**: Redis with SHA-256 embedding caching and LRU memory fallback.
 - **Graph & Algorithms**: NetworkX directed multi-tier graph traversal and DAG cycle detection.

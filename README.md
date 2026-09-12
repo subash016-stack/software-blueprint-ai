@@ -35,16 +35,13 @@ $$\text{Stakeholder} \longrightarrow \text{Requirement (FR)} \longrightarrow \te
 
 ---
 
-## 💻 Hardware Optimized Execution Profile
+## 💻 Local & Offline Inference Architecture
 
-Configured specifically for local workstations and developer laptops:
-- **CPU**: Intel Core i5-12450H (8 Cores, 12 Threads)
-- **RAM**: 16 GB DDR4/DDR5
-- **GPU**: NVIDIA GeForce RTX 2050 (4 GB VRAM)
-- **Primary LLM**: `qwen3:4b` (Local Ollama, JSON mode)
+Designed for 100% private, offline local execution with zero cloud data egress:
+- **Local Generation Model**: Ollama LLM (`qwen2.5:3b`, `qwen2.5:7b`, or compatible)
 - **Embedding Model**: `qwen3-embedding:0.6b` (Qdrant Vector Store)
-- **Caching**: Redis with zero-dependency high-performance in-memory LRU fallback
-- **Zero Heavy Multi-Model Loading**: Ensures maximum memory footprint remains under 3.5 GB VRAM!
+- **Caching Layer**: Redis with zero-dependency high-performance in-memory LRU fallback
+- **Deterministic Offloading**: Graph traversals, cycle detection, and traceability audits executed in pure Python (<2ms)
 
 ---
 

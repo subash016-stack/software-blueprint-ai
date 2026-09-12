@@ -113,16 +113,12 @@ export default function MetricsModal({ isOpen, onClose }) {
 
           <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 font-mono text-xs text-slate-300 space-y-2">
             <div className="flex justify-between">
-              <span className="text-slate-500">Hardware Profile:</span>
-              <span className="text-slate-300">Intel i5-12450H • 16GB RAM • RTX 2050 4GB</span>
+              <span className="text-slate-500">Inference Engine:</span>
+              <span className="text-slate-300">Local Ollama LLM</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500">Primary Model:</span>
-              <span className="text-slate-300">qwen3:4b (Local Ollama)</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Embedding Engine:</span>
-              <span className="text-slate-300">qwen3-embedding:0.6b (Qdrant Vector Store)</span>
+              <span className="text-slate-500">Vector Knowledge Store:</span>
+              <span className="text-slate-300">Qdrant Vector Database</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Cache Layer:</span>

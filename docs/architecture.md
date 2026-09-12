@@ -81,9 +81,8 @@ For each architectural decision (e.g., Database choice, Communication pattern, A
 
 ---
 
-## 4. Hardware Optimization Profile
+## 4. Local Execution & Efficiency Architecture
 
-Optimized for **Intel i5-12450H (16 GB RAM, RTX 2050 4 GB VRAM)**:
-1. **Single-Model Memory Allocation**: Only 1 LLM (`qwen3:4b`) or 1 Embedding model (`qwen3-embedding:0.6b`) active in GPU VRAM at a time.
-2. **Deterministic Offloading**: Graph traversals, cycle detection, and traceability audits run purely in Python (`NetworkX`) in <2ms, bypassing the LLM.
-3. **Multi-Tier Caching**: Redis + SHA-256 in-memory LRU cache prevents redundant model invocations.
+1. **Deterministic Offloading**: Graph traversals, cycle detection, and traceability audits run purely in Python (`NetworkX`) in <2ms, bypassing the LLM.
+2. **Multi-Tier Caching**: Redis + SHA-256 in-memory LRU cache prevents redundant model invocations.
+3. **Structured Pydantic Validation**: Guarantees typed outputs across all agent boundaries with automatic schema retries.
