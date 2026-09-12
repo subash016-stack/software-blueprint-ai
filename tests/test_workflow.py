@@ -37,7 +37,7 @@ def test_health_endpoint(client):
     """Test GET /health returns 200 and status ok."""
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json()["status"] == "ok"
 
 
 def test_frontend_endpoint(client):
@@ -156,8 +156,22 @@ def test_generate_endpoint_success_mocked(client, monkeypatch):
         ]
     )
 
+    from app.schemas import ArchitectureBlueprint, Container, ArchitectureComponent
+    mock_arch = ArchitectureBlueprint(
+        overview="Mock Arch",
+        containers=[Container(id="CONT-001", name="API", type="Backend Service", technology="FastAPI", description="API")],
+        components=[ArchitectureComponent(id="COMP-001", name="Auth", description="Auth", requirement_ids=["FR-001"])],
+        apis=[],
+        databases=[],
+        security_strategy="TLS",
+        scalability_strategy="Redis",
+        deployment_topology="Docker"
+    )
+
     monkeypatch.setattr("app.agents.requirement_agent.generate_requirements", lambda idea: mock_srs)
     monkeypatch.setattr("app.agents.planning_agent.generate_project_plan", lambda reqs: mock_plan)
+    monkeypatch.setattr("app.agents.architecture_agent.generate_architecture_blueprint", lambda r, p: mock_arch)
+    monkeypatch.setattr("app.agents.rag_agent.generate_rag_recommendations", lambda r, a: [])
 
     payload = {
         "project_idea": "Build an online food delivery platform for customers, restaurants and delivery partners."

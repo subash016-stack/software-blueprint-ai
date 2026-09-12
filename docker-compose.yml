@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  # 1. FastAPI Multi-Agent Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: software-blueprint-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - GENERATION_MODEL=qwen3:4b
+      - EMBEDDING_MODEL=qwen3-embedding:0.6b
+      - REDIS_URL=redis://redis:6379
+      - QDRANT_URL=http://qdrant:6333
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/software_blueprint
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  # 2. PostgreSQL Relational Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: software-blueprint-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: software_blueprint
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # 3. Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: software-blueprint-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # 4. Qdrant Vector Database
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: software-blueprint-qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6333/readyz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  qdrant_data:

@@ -1,3 +1,5 @@
+"""Main FastAPI Application entry point for Software Blueprint AI."""
+
 import logging
 import os
 from contextlib import asynccontextmanager
@@ -6,9 +8,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.schemas import GenerateRequest, GenerateResponse
+from app.schemas import GenerateRequest, GenerateResponse, CompleteBlueprint
 from app.graph import run_blueprint_generation
-from app.llm import get_settings
+from app.config import get_settings
+from app.api.routes import router as api_router
+from app.rag.retriever import load_and_ingest_knowledge_base
+from app.services.project_service import save_complete_blueprint
 
 # Configure logging
 logging.basicConfig(
@@ -24,20 +29,27 @@ STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 async def lifespan(app: FastAPI):
     """Application startup and shutdown events."""
     settings = get_settings()
-    logger.info("Initializing Software Blueprint AI API...")
-    logger.info("Target Ollama Base URL: %s", settings.ollama_base_url)
-    logger.info("Target Ollama Model: %s", settings.ollama_model)
+    logger.info("Initializing Software Blueprint AI (Modules 1-6)...")
+    logger.info("Target Ollama URL: %s | Model: %s", settings.ollama_base_url, settings.generation_model)
+    
+    # Pre-index academic knowledge base
+    try:
+        total_chunks = load_and_ingest_knowledge_base()
+        logger.info("Indexed %d knowledge base chunks for RAG.", total_chunks)
+    except Exception as e:
+        logger.warning("Knowledge base initialization warning: %s", e)
+
     yield
-    logger.info("Shutting down Software Blueprint AI API.")
+    logger.info("Shutting down Software Blueprint AI.")
 
 
 app = FastAPI(
     title="AI-Driven Software Engineering Blueprint Generator",
     description=(
-        "Research prototype that converts natural-language project ideas into structured "
-        "Software Requirements Specifications (Module 1) and actionable Project Plans (Module 2)."
+        "Full-Lifecycle Research Prototype converting natural-language ideas into structured, "
+        "evidence-grounded, validated, and traceable software engineering blueprints with change impact analysis."
     ),
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
@@ -50,15 +62,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount REST API Routes
+app.include_router(api_router, prefix="/api/v1")
+app.include_router(api_router)  # Also mount at root level for /projects, /metrics, etc.
+
 # Mount static assets
 if os.path.exists(STATIC_DIR):
+    assets_dir = os.path.join(STATIC_DIR, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 @app.get(
     "/",
     tags=["Frontend"],
-    summary="Interactive Web UI",
+    summary="Interactive Web UI Dashboard",
     include_in_schema=False
 )
 async def serve_frontend():
@@ -66,7 +85,16 @@ async def serve_frontend():
     index_path = os.path.join(STATIC_DIR, "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
-    return {"message": "Frontend index.html not found. Please check app/static/ directory."}
+    return {"message": "Frontend index.html not found in app/static/."}
+
+
+@app.get("/vite.svg", include_in_schema=False)
+async def serve_favicon():
+    """Serve the application icon."""
+    svg_path = os.path.join(STATIC_DIR, "vite.svg")
+    if os.path.exists(svg_path):
+        return FileResponse(svg_path, media_type="image/svg+xml")
+    return {"status": "not found"}
 
 
 @app.get(
@@ -76,9 +104,14 @@ async def serve_frontend():
     response_description="Returns system operational status."
 )
 async def health_check():
-    """Verify service availability."""
-    return {"status": "ok"}
-
+    """Verify service availability and dependency status."""
+    settings = get_settings()
+    return {
+        "status": "ok",
+        "model": settings.generation_model,
+        "embedding_model": settings.embedding_model,
+        "version": "2.0.0"
+    }
 
 
 @app.post(
@@ -86,18 +119,11 @@ async def health_check():
     response_model=GenerateResponse,
     status_code=status.HTTP_200_OK,
     tags=["Blueprint Generation"],
-    summary="Generate Software Blueprint",
-    response_description="Structured SRS and Engineering Project Plan."
+    summary="Generate Software Blueprint (Legacy & Standalone)",
+    response_description="Structured SRS, Project Plan, and Architecture."
 )
-async def generate_blueprint(request: GenerateRequest):
-    """Convert a natural-language project idea into a complete Software Blueprint.
-    
-    Executes:
-    1. **Module 1 (Requirement Analysis Agent)**: Stakeholders, Functional Requirements (FR),
-       Non-Functional Requirements (NFR), Constraints, Ambiguities, and Assumptions.
-    2. **Module 2 (Project Planning Agent)**: Cohesive Modules, Work Breakdown Tasks,
-       Dependency Scheduling, Milestones, and an Ordered Roadmap.
-    """
+def generate_blueprint(request: GenerateRequest):
+    """Convert a natural-language project idea into a complete Software Blueprint."""
     idea = request.project_idea.strip()
     if not idea or len(idea) < 5:
         raise HTTPException(
@@ -110,34 +136,46 @@ async def generate_blueprint(request: GenerateRequest):
     try:
         result_state = run_blueprint_generation(idea)
         
-        # Check for pipeline errors
         errors = result_state.get("errors", [])
         if errors and not result_state.get("requirements"):
-            logger.error("Pipeline failure in Requirement Agent: %s", errors)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Requirement analysis failed: {'; '.join(errors)}"
             )
 
-        if errors and not result_state.get("project_plan"):
-            logger.error("Pipeline failure in Planning Agent: %s", errors)
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Project planning failed: {'; '.join(errors)}"
-            )
-
         requirements = result_state.get("requirements")
         project_plan = result_state.get("project_plan")
+        architecture = result_state.get("architecture")
+        rag = result_state.get("rag_recommendations")
+        val = result_state.get("validation_report")
 
         if not requirements or not project_plan:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Incomplete blueprint generation. One or more modules produced empty outputs."
+                detail="Incomplete blueprint generation."
             )
+
+        # Save to projects store
+        bp = CompleteBlueprint(
+            project_id="proj-default",
+            project_name=request.project_name or requirements.project_name,
+            version=1,
+            requirements=requirements,
+            project_plan=project_plan,
+            architecture=architecture,
+            rag_recommendations=rag or [],
+            validation_report=val,
+            version_history=[]
+        )
+        save_complete_blueprint(bp)
 
         return GenerateResponse(
             requirements=requirements,
-            project_plan=project_plan
+            project_plan=project_plan,
+            architecture=architecture,
+            rag_recommendations=rag,
+            validation_report=val,
+            version=1
         )
 
     except HTTPException:
@@ -146,20 +184,13 @@ async def generate_blueprint(request: GenerateRequest):
         logger.error("Ollama connection error: %s", ce)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Failed to connect to local Ollama instance. Ensure Ollama is running at the configured URL."
+            detail="Failed to connect to local Ollama instance. Ensure Ollama is running at http://localhost:11434."
         )
     except Exception as e:
         logger.error("Unexpected error during blueprint generation: %s", e, exc_info=True)
-        # Avoid leaking raw internal stack traces to the API client
-        error_msg = str(e)
-        if "Failed to connect" in error_msg or "Connection refused" in error_msg:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Unable to reach Ollama LLM service. Please verify that Ollama is active."
-            )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Blueprint generation failed: {error_msg}"
+            detail=f"Blueprint generation failed: {str(e)}"
         )
 
 
