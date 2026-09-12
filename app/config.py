@@ -10,8 +10,8 @@ class Settings(BaseSettings):
 
     # Ollama LLM Configuration
     ollama_base_url: str = "http://localhost:11434"
-    generation_model: str = "qwen3:4b"
-    fallback_generation_model: str = "qwen2.5:3b"
+    generation_model: str = "qwen2.5:3b"
+    fallback_generation_model: str = ""
     embedding_model: str = "qwen3-embedding:0.6b"
     fallback_embedding_model: str = "nomic-embed-text"
     ollama_temperature: float = 0.0

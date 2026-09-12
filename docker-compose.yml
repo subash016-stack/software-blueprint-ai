@@ -11,7 +11,7 @@ services:
       - "8000:8000"
     environment:
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
-      - GENERATION_MODEL=qwen3:4b
+      - GENERATION_MODEL=qwen2.5:3b
       - EMBEDDING_MODEL=qwen3-embedding:0.6b
       - REDIS_URL=redis://redis:6379
       - QDRANT_URL=http://qdrant:6333

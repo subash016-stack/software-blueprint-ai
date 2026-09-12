@@ -52,7 +52,7 @@ Designed for 100% private, offline local execution with zero cloud data egress:
 - **Node.js 18+ & npm**
 - **Ollama** running locally with:
   ```powershell
-  ollama pull qwen3:4b
+  ollama pull qwen2.5:3b
   ollama pull qwen3-embedding:0.6b
   ```
 
