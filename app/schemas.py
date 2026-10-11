@@ -504,10 +504,12 @@ class ArchitectureDecisionRecord(BaseModel):
 
 class TechStackItem(BaseModel):
     """Detailed justification, trade-off rationale, and literature citation for a chosen technology in the tech stack."""
-    layer: str = Field(..., description="Architecture tier (e.g., 'Backend Framework', 'Relational Persistence', 'Cache Layer', 'Vector Knowledge Store', 'Frontend UI', 'Security & Identity')")
-    technology: str = Field(..., description="Selected technology name (e.g., 'FastAPI', 'PostgreSQL 16', 'Redis 7', 'React 18', 'Qdrant')")
-    category: str = Field(default="Core Stack", description="Category: 'Framework', 'Data Store', 'Performance', 'Security', 'User Interface'")
+    layer: str = Field(..., description="Architecture tier (e.g., 'Backend Framework', 'Relational Persistence', 'Cache Layer', 'Vector Knowledge Store', 'Frontend UI', 'Security & Identity', 'Graph / Scheduling Algorithm')")
+    technology: str = Field(..., description="Selected technology name (e.g., 'FastAPI', 'PostgreSQL 16', 'Redis 7', 'React 18', 'Qdrant', 'NetworkX DFS')")
+    category: str = Field(default="Core Stack", description="Category: 'Framework', 'Data Store', 'Performance', 'Security', 'User Interface', 'Graph Algorithm'")
     decision_rationale: str = Field(..., description="In-depth explanation of why this specific technology was chosen over alternatives")
+    alternatives_compared: List[str] = Field(default_factory=list, description="Specific competing technologies/frameworks/algorithms evaluated (e.g. ['Node.js (Express)', 'Flask', 'Django'])")
+    comparison_justification: str = Field(default="", description="Explicit comparative explanation of why the chosen technology was selected over the alternatives")
     pros: List[str] = Field(default_factory=list, description="Key technical advantages in this system context")
     tradeoffs: str = Field(..., description="Engineering trade-offs and operational constraints acknowledged")
     rag_citation: Optional[str] = Field(default=None, description="Linked architectural guide or evidence code (e.g., 'ARCH-001', 'DATA-001', 'SCALE-001', 'SEC-001')")

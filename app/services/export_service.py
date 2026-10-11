@@ -87,12 +87,14 @@ def export_markdown_dossier(bp: CompleteBlueprint) -> str:
     lines.append("\n")
 
     if bp.architecture.tech_stack_rationale:
-        lines.append("### Tech Stack Selection & Literature Justifications\n")
-        lines.append("| Architecture Tier | Technology | RAG Literature Citation | Why Chosen / Decision Rationale |")
-        lines.append("|---|---|---|---|")
+        lines.append("### Tech Stack & Algorithm Selection Rationale (Compared vs Alternatives)\n")
+        lines.append("| Architecture Tier | Technology | RAG Citation | Alternatives Evaluated | Why Chosen Over Alternatives |")
+        lines.append("|---|---|---|---|---|")
         for ts in bp.architecture.tech_stack_rationale:
             cite = f"`[{ts.rag_citation}]`" if ts.rag_citation else "Standard"
-            lines.append(f"| **{ts.layer}** | `{ts.technology}` | {cite} | {ts.decision_rationale} |")
+            alts = ", ".join(ts.alternatives_compared) if ts.alternatives_compared else "Standard"
+            comp = ts.comparison_justification or ts.decision_rationale
+            lines.append(f"| **{ts.layer}** | `{ts.technology}` | {cite} | {alts} | {comp} |")
         lines.append("\n")
 
     # 6. Architecture Decision Records (ADRs)
