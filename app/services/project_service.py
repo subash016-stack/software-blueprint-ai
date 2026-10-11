@@ -137,6 +137,7 @@ def list_projects() -> List[Dict[str, Any]]:
             for p in db_projects:
                 projects_dict[p.id] = {
                     "id": p.id,
+                    "project_id": p.id,
                     "name": p.name,
                     "description": p.description,
                     "version": p.latest_version,
@@ -148,6 +149,7 @@ def list_projects() -> List[Dict[str, Any]]:
     for pid, bp in _ACTIVE_PROJECTS.items():
         projects_dict[pid] = {
             "id": pid,
+            "project_id": pid,
             "name": bp.project_name,
             "description": bp.requirements.project_description,
             "version": bp.version,

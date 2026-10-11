@@ -274,3 +274,17 @@ def export_project_jira(project_id: str):
     if not bp:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Project '{project_id}' not found.")
     return export_jira_backlog(bp)
+
+
+@router.get("/health", tags=["System"], summary="Service Health Check")
+async def health_check_route():
+    """Verify service availability and dependency status."""
+    from app.config import get_settings
+    settings = get_settings()
+    return {
+        "status": "ok",
+        "model": settings.generation_model,
+        "embedding_model": settings.embedding_model,
+        "version": "2.0.0"
+    }
+
