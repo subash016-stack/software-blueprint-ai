@@ -647,6 +647,9 @@ class CompleteBlueprint(BaseModel):
     requirements_hash: Optional[str] = None
     plan_hash: Optional[str] = None
     architecture_hash: Optional[str] = None
+    execution_time_ms: Optional[float] = None
+    agent_timings: Optional[Dict[str, float]] = Field(default_factory=dict)
+    metrics: Optional[Dict[str, Any]] = None
 
     @model_validator(mode="after")
     def populate_hashes(self) -> "CompleteBlueprint":

@@ -124,6 +124,7 @@ export default function App() {
       <MetricsModal
         isOpen={isMetricsOpen}
         onClose={() => setIsMetricsOpen(false)}
+        blueprint={blueprint}
       />
     </div>
   );

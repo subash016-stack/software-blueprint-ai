@@ -69,8 +69,9 @@ export const refineBlueprint = async (projectId, payload) => {
   return response.data;
 };
 
-export const getMetrics = async () => {
-  const response = await api.get('/metrics');
+export const getMetrics = async (projectId = null) => {
+  const url = projectId ? `/metrics?project_id=${encodeURIComponent(projectId)}` : '/metrics';
+  const response = await api.get(url);
   return response.data;
 };
 

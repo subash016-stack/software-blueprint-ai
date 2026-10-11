@@ -72,6 +72,8 @@ def create_project(request: CreateProjectRequest):
         )
 
     name = request.project_name or reqs.project_name or "Software Project"
+    timings = result_state.get("metadata", {}).get("timings", {})
+    total_exec_time = result_state.get("metadata", {}).get("total_execution_time_ms", 0.0)
 
     blueprint = CompleteBlueprint(
         project_id=project_id,
@@ -82,7 +84,10 @@ def create_project(request: CreateProjectRequest):
         architecture=arch,
         rag_recommendations=rag,
         validation_report=val,
-        version_history=[]
+        version_history=[],
+        execution_time_ms=total_exec_time,
+        agent_timings=timings,
+        metrics=MetricsTracker.get_summary(project_id=project_id)
     )
 
     save_complete_blueprint(blueprint)
@@ -243,9 +248,9 @@ def refine_blueprint(project_id: str, change_req: RequirementChangeRequest):
 
 
 @router.get("/metrics", tags=["Observability"], summary="System Performance and Token Metrics")
-async def get_metrics():
-    """Get real-time observability metrics: LLM invocations, token savings, cache hit rate, latencies."""
-    return MetricsTracker.get_summary()
+async def get_metrics(project_id: Optional[str] = Query(None, description="Optional project ID to scope assurance metrics")):
+    """Get real-time observability metrics: LLM invocations, token savings, cache hit rate, latencies, traceability, execution time, consistency, and completeness."""
+    return MetricsTracker.get_summary(project_id=project_id)
 
 
 @router.get("/projects/{project_id}/export/markdown", tags=["Export"], summary="Export full IEEE 830 Engineering Dossier in Markdown")
