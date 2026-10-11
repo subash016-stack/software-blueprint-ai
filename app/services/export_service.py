@@ -86,6 +86,15 @@ def export_markdown_dossier(bp: CompleteBlueprint) -> str:
         lines.append(f"| `{api.id}` | `{api.method}` | `{api.endpoint}` | `{api.component_id}` | {frs} | {api.summary} |")
     lines.append("\n")
 
+    if bp.architecture.tech_stack_rationale:
+        lines.append("### Tech Stack Selection & Literature Justifications\n")
+        lines.append("| Architecture Tier | Technology | RAG Literature Citation | Why Chosen / Decision Rationale |")
+        lines.append("|---|---|---|---|")
+        for ts in bp.architecture.tech_stack_rationale:
+            cite = f"`[{ts.rag_citation}]`" if ts.rag_citation else "Standard"
+            lines.append(f"| **{ts.layer}** | `{ts.technology}` | {cite} | {ts.decision_rationale} |")
+        lines.append("\n")
+
     # 6. Architecture Decision Records (ADRs)
     if bp.architecture.adrs:
         lines.append("## 6. Architecture Decision Records (ADRs)\n")
@@ -114,6 +123,21 @@ def export_markdown_dossier(bp: CompleteBlueprint) -> str:
                 lines.append(f"- [`{ev.source_id}`] **{ev.title}** ({ev.section}) — Similarity: `{round(ev.relevance_score, 2)}`")
                 lines.append(f"  > *\"{ev.excerpt}\"*")
         lines.append("\n")
+
+    # 8. Deterministic Quality Audit & Score Explainability
+    if bp.validation_report:
+        lines.append("## 8. Deterministic Quality Audit & Score Explainability\n")
+        vr = bp.validation_report
+        lines.append(f"- **Overall Quality Score**: `{vr.overall_score}/100` | **Status**: `{'PASSED' if vr.is_valid else 'ACTION NEEDED'}`\n")
+        if vr.score_explainability:
+            lines.append("### Score Calculation Breakdown & Explainability\n")
+            for dim_k, exp in vr.score_explainability.items():
+                lines.append(f"#### {exp.dimension_name}: `{exp.score}%` (Weight: {exp.weight_pct}%)")
+                lines.append(f"- **Calculation Formula**: `{exp.formula}`")
+                lines.append(f"- **Calculation Summary**: {exp.calculation_summary}")
+                lines.append(f"- **Positive Scoring Criteria**: {', '.join(exp.positive_factors)}")
+                lines.append(f"- **Deductions Applied**: {', '.join(exp.deductions)}")
+                lines.append(f"- **Actionable Improvement Guidance**: {exp.actionable_guidance}\n")
 
     return "\n".join(lines)
 

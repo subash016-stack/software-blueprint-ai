@@ -16,7 +16,7 @@ from app.schemas import (
     ValidationReport
 )
 from app.state import BlueprintState
-from app.validation.deterministic import run_deterministic_audit
+from app.validation.deterministic import run_deterministic_audit, generate_score_explainability
 from app.llm.factory import invoke_structured
 from app.cache.redis_client import cache_manager
 from app.config import get_settings
@@ -50,6 +50,16 @@ def validate_blueprint(
         requirements,
         project_plan,
         architecture
+    )
+
+    # 2. Score Explainability & Calculation Formulas
+    score_explainability = generate_score_explainability(
+        requirements,
+        project_plan,
+        architecture,
+        critical_issues,
+        warnings,
+        scores
     )
 
     recommendations = [
@@ -112,6 +122,7 @@ Provide 3 concise, actionable architectural recommendations to maximize engineer
         is_valid=is_valid,
         overall_score=scores.overall_score,
         score_breakdown=scores,
+        score_explainability=score_explainability,
         critical_issues=critical_issues,
         warnings=warnings,
         recommendations=recommendations

@@ -502,6 +502,17 @@ class ArchitectureDecisionRecord(BaseModel):
         return v
 
 
+class TechStackItem(BaseModel):
+    """Detailed justification, trade-off rationale, and literature citation for a chosen technology in the tech stack."""
+    layer: str = Field(..., description="Architecture tier (e.g., 'Backend Framework', 'Relational Persistence', 'Cache Layer', 'Vector Knowledge Store', 'Frontend UI', 'Security & Identity')")
+    technology: str = Field(..., description="Selected technology name (e.g., 'FastAPI', 'PostgreSQL 16', 'Redis 7', 'React 18', 'Qdrant')")
+    category: str = Field(default="Core Stack", description="Category: 'Framework', 'Data Store', 'Performance', 'Security', 'User Interface'")
+    decision_rationale: str = Field(..., description="In-depth explanation of why this specific technology was chosen over alternatives")
+    pros: List[str] = Field(default_factory=list, description="Key technical advantages in this system context")
+    tradeoffs: str = Field(..., description="Engineering trade-offs and operational constraints acknowledged")
+    rag_citation: Optional[str] = Field(default=None, description="Linked architectural guide or evidence code (e.g., 'ARCH-001', 'DATA-001', 'SCALE-001', 'SEC-001')")
+
+
 class ArchitectureBlueprint(BaseModel):
     """Complete Technical Architecture Blueprint produced by Module 3."""
     id: str = Field(default="ARCH-001", description="Architecture blueprint identifier")
@@ -515,6 +526,7 @@ class ArchitectureBlueprint(BaseModel):
     apis: List[ArchitectureAPI] = Field(default_factory=list, description="Core API specifications")
     databases: List[ArchitectureDatabase] = Field(default_factory=list, description="Data persistence and caching architecture")
     adrs: List[ArchitectureDecisionRecord] = Field(default_factory=list, description="Formal Architecture Decision Records (ADRs)")
+    tech_stack_rationale: List[TechStackItem] = Field(default_factory=list, description="Detailed selection justifications for all technologies in the tech stack")
     security_strategy: str = Field(..., description="Authentication, authorization, TLS, data protection measures")
     scalability_strategy: str = Field(..., description="Load balancing, caching, asynchronous workers, horizontal scaling")
     deployment_topology: str = Field(..., description="Containerization, orchestration, and hosting topology")
@@ -560,6 +572,18 @@ class ValidationIssue(BaseModel):
     recommendation: Optional[str] = Field(default=None, description="Suggested corrective action")
 
 
+class ScoreExplanation(BaseModel):
+    """Detailed explainability, calculation formula, and deduction trace for a quality score dimension."""
+    dimension_name: str = Field(..., description="Name of the quality dimension (e.g. 'Requirements Specification Quality')")
+    score: int = Field(..., ge=0, le=100, description="Quantitative score (0-100)")
+    weight_pct: int = Field(..., description="Weight contribution percentage towards overall score")
+    formula: str = Field(..., description="Mathematical calculation formula used")
+    calculation_summary: str = Field(..., description="Step-by-step summary of how the score was computed")
+    positive_factors: List[str] = Field(default_factory=list, description="List of positive engineering criteria that earned points")
+    deductions: List[str] = Field(default_factory=list, description="List of deductions or penalties applied")
+    actionable_guidance: str = Field(..., description="Actionable recommendation to improve this score")
+
+
 class QualityScoreBreakdown(BaseModel):
     """Multi-dimensional software engineering quality score (0 to 100)."""
     requirement_quality: int = Field(default=90, ge=0, le=100)
@@ -576,6 +600,7 @@ class ValidationReport(BaseModel):
     is_valid: bool = True
     overall_score: int = Field(default=90, ge=0, le=100)
     score_breakdown: QualityScoreBreakdown = Field(default_factory=QualityScoreBreakdown)
+    score_explainability: Dict[str, ScoreExplanation] = Field(default_factory=dict)
     critical_issues: List[ValidationIssue] = Field(default_factory=list)
     warnings: List[ValidationIssue] = Field(default_factory=list)
     recommendations: List[str] = Field(default_factory=list)
