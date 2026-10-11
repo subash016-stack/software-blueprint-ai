@@ -1,6 +1,7 @@
 """Vector store client supporting Qdrant with in-memory cosine fallback."""
 
 import logging
+import uuid
 from typing import Any, Dict, List, Optional
 from app.config import get_settings
 
@@ -82,11 +83,11 @@ class VectorStoreManager:
             try:
                 q_points = [
                     PointStruct(
-                        id=idx if isinstance(p["id"], int) else idx + 1,
+                        id=str(uuid.uuid5(uuid.NAMESPACE_DNS, str(p["id"]))),
                         vector=p["vector"],
                         payload=p["payload"]
                     )
-                    for idx, p in enumerate(points)
+                    for p in points
                 ]
                 self.client.upsert(
                     collection_name=self.settings.qdrant_collection_name,
@@ -134,6 +135,25 @@ class VectorStoreManager:
 
     def count(self) -> int:
         return len(self._memory_points)
+
+    def get_status(self) -> Dict[str, Any]:
+        """Return connectivity and collection status for Qdrant and memory store."""
+        status_info = {
+            "qdrant_available": self._is_qdrant_available,
+            "qdrant_url": self.settings.qdrant_url,
+            "dashboard_url": f"{self.settings.qdrant_url.rstrip('/')}/dashboard",
+            "collection_name": self.settings.qdrant_collection_name,
+            "vector_dimension": 384,
+            "distance_metric": "Cosine",
+            "total_indexed_chunks": len(self._memory_points),
+            "backend": "Qdrant Vector Engine" if self._is_qdrant_available else "In-Memory Vector Engine (Offline Fallback)",
+            "how_to_view": (
+                "Open http://localhost:6333/dashboard in your web browser. "
+                "Navigate to 'Collections' -> 'software_architecture_knowledge'. "
+                "You can visually inspect points, dense vectors (384-dim), and JSON payloads."
+            )
+        }
+        return status_info
 
 
 # Global singleton instance

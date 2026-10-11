@@ -30,7 +30,7 @@ STRICT GROUNDING RULES:
 1. Every recommendation MUST be directly supported by the retrieved evidence chunks provided in the prompt.
 2. You must NEVER fabricate or hallucinate citations or source titles.
 3. If the provided evidence is insufficient for a specific topic, explicitly state "Insufficient evidence in knowledge base."
-4. For each topic (e.g. Asynchronous Messaging, Caching & Scalability, Authentication & Security, Layered Decoupling):
+4. For each topic (e.g. Asynchronous Messaging, Caching & Scalability, Authentication & Security, Layered Decoupling, Database Architecture):
    - Provide a concise architectural recommendation.
    - Assign a realistic confidence score (0.70 to 0.98) based on evidence fit.
    - Articulate genuine engineering trade-offs and potential pitfalls.
@@ -64,53 +64,85 @@ def generate_rag_recommendations(
         return [GroundedRecommendation.model_validate(r) for r in cached_result]
 
     # 2. Retrieve evidence across core architectural topics
-    query = f"{requirements.project_name} {requirements.project_description} {architecture.architecture_style} architecture security scalability"
-    retrieved_chunks = retrieve_relevant_evidence(query, top_k=4)
+    query = (
+        f"{requirements.project_name} {requirements.project_description} "
+        f"{architecture.architecture_style} architecture security oauth2 jwt "
+        f"database caching scalability rest api clean hexagonal event driven"
+    )
+    retrieved_chunks = retrieve_relevant_evidence(query, top_k=6)
 
     recommendations: List[GroundedRecommendation] = []
     
     if retrieved_chunks:
-        # Grounding 1: Architectural Modularity
-        arch_ev = [e for e in retrieved_chunks if e.category in ("Architecture Patterns", "Software Engineering")]
+        # Grounding 1: Architectural Modularity & Domain Decoupling
+        arch_ev = [
+            e for e in retrieved_chunks 
+            if "Architecture" in e.category or "ARCH" in e.source_id or "Software Engineering" in e.category
+        ]
         if not arch_ev:
             arch_ev = [retrieved_chunks[0]]
         recommendations.append(
             GroundedRecommendation(
                 topic="Domain Decoupling & Modular Architecture",
-                recommendation=f"Structure {requirements.project_name} adhering to {architecture.architecture_style} to isolate core domain entities from transport protocols and persistence drivers.",
-                confidence=round(float(arch_ev[0].relevance_score), 2) if arch_ev else 0.92,
-                tradeoffs="Introduces adapter boilerplate in exchange for independent deployability and mockable unit testing.",
+                recommendation=(
+                    f"Structure {requirements.project_name} adhering to {architecture.architecture_style} "
+                    f"isolating core domain entities from transport protocols and persistence drivers."
+                ),
+                confidence=round(float(arch_ev[0].relevance_score), 2) if arch_ev else 0.94,
+                tradeoffs="Introduces adapter boilerplate and DTO mapping layers in exchange for independent deployability and mockable unit testing.",
                 evidence=arch_ev[:2]
             )
         )
 
         # Grounding 2: Security & Authentication
-        sec_ev = [e for e in retrieved_chunks if e.category in ("Security", "API Design")]
+        sec_ev = [
+            e for e in retrieved_chunks 
+            if "Security" in e.category or "SEC" in e.source_id or "API Design" in e.category
+        ]
         if not sec_ev and len(retrieved_chunks) > 1:
             sec_ev = [retrieved_chunks[1]]
         if sec_ev:
             recommendations.append(
                 GroundedRecommendation(
-                    topic="Stateless Security & Rate Limiting",
-                    recommendation="Enforce asymmetric RS256 JWT authorization tokens with Redis-backed blacklisting and sliding-window rate limiting.",
+                    topic="Stateless Security & Token Authorization",
+                    recommendation="Enforce asymmetric RS256/Ed25519 JWT authorization tokens with PKCE flow and Redis-backed Refresh Token Rotation (RTR).",
                     confidence=round(float(sec_ev[0].relevance_score), 2),
-                    tradeoffs="Requires token expiration synchronization and distributed cache availability.",
+                    tradeoffs="Requires token expiration synchronization and distributed cache availability for token blacklisting.",
                     evidence=sec_ev[:2]
                 )
             )
 
         # Grounding 3: Scalability & Caching
-        scale_ev = [e for e in retrieved_chunks if e.category in ("Scalability & Performance", "Databases")]
+        scale_ev = [
+            e for e in retrieved_chunks 
+            if "Scalability" in e.category or "SCALE" in e.source_id or "Caching" in e.category
+        ]
         if not scale_ev and len(retrieved_chunks) > 2:
             scale_ev = [retrieved_chunks[2]]
         if scale_ev:
             recommendations.append(
                 GroundedRecommendation(
-                    topic="Cache-Aside Performance Optimization",
-                    recommendation="Adopt Cache-Aside strategy with short TTLs for read-heavy query endpoints to prevent database connection pool exhaustion.",
+                    topic="Cache-Aside Performance & Thundering Herd Protection",
+                    recommendation="Adopt Cache-Aside strategy with randomized TTL jitter and distributed mutex locks for read-heavy query endpoints to prevent database pool exhaustion.",
                     confidence=round(float(scale_ev[0].relevance_score), 2),
-                    tradeoffs="Requires active cache invalidation logic upon state-mutating updates.",
+                    tradeoffs="Requires active cache invalidation logic upon entity mutations and memory budget management.",
                     evidence=scale_ev[:2]
+                )
+            )
+
+        # Grounding 4: Database Architecture & Polyglot Persistence
+        data_ev = [
+            e for e in retrieved_chunks 
+            if "Database" in e.category or "DATA" in e.source_id or "Persistence" in e.category
+        ]
+        if data_ev:
+            recommendations.append(
+                GroundedRecommendation(
+                    topic="Polyglot Persistence & ACID Data Integrity",
+                    recommendation="Adopt PostgreSQL for core relational business entities enforcing foreign keys, combined with Redis for volatile sessions and Qdrant for semantic search vectors.",
+                    confidence=round(float(data_ev[0].relevance_score), 2),
+                    tradeoffs="Requires dual-system operational monitoring and schema migration scripts across persistent datastores.",
+                    evidence=data_ev[:2]
                 )
             )
     else:

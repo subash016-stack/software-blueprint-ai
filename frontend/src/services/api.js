@@ -79,4 +79,24 @@ export const healthCheck = async () => {
   return response.data;
 };
 
+export const getRagDocuments = async () => {
+  const response = await api.get('/rag/documents');
+  return response.data;
+};
+
+export const getRagChunks = async () => {
+  const response = await api.get('/rag/chunks');
+  return response.data;
+};
+
+export const getQdrantInfo = async () => {
+  const response = await api.get('/rag/qdrant-info');
+  return response.data;
+};
+
+export const reindexRag = async () => {
+  const response = await api.post('/rag/reindex');
+  return response.data;
+};
+
 export default api;

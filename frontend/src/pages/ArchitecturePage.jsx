@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Database, Server, Cpu, Shield, Zap, Layers, Globe, Code, ArrowRight } from 'lucide-react';
+import { Database, Server, Cpu, Shield, Zap, Layers, Globe, Code, ArrowRight, CheckCircle } from 'lucide-react';
 
 export default function ArchitecturePage({ blueprint }) {
   const [selectedComponent, setSelectedComponent] = useState(null);
@@ -13,7 +13,7 @@ export default function ArchitecturePage({ blueprint }) {
     );
   }
 
-  const { architecture_style, overview, containers, components, apis, databases, security_strategy, scalability_strategy, deployment_topology } = blueprint.architecture;
+  const { architecture_style, overview, containers, components, apis, databases, adrs, security_strategy, scalability_strategy, deployment_topology } = blueprint.architecture;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
@@ -174,6 +174,71 @@ export default function ArchitecturePage({ blueprint }) {
           </div>
         </div>
       </div>
+
+      {/* Architecture Decision Records (ADRs) with Grounded RAG Citations */}
+      {adrs && adrs.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2 text-white font-display font-bold text-base">
+            <CheckCircle className="w-5 h-5 text-emerald-400" />
+            <h3>Architecture Decision Records (ADRs)</h3>
+            <span className="text-xs font-mono text-slate-400">({adrs.length})</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {adrs.map((adr) => (
+              <div key={adr.id} className="glass-panel rounded-xl p-5 space-y-3 border-l-4 border-l-brand-500">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <span className="font-mono text-xs font-bold text-brand-400 px-2.5 py-0.5 rounded bg-brand-500/10 border border-brand-500/20">
+                      {adr.id}
+                    </span>
+                    <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                      {adr.status}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    Confidence: {Math.round((adr.confidence || 0.9) * 100)}%
+                  </span>
+                </div>
+
+                <h4 className="font-display font-bold text-white text-base">{adr.title}</h4>
+
+                <div className="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-3 rounded-lg border border-slate-800 space-y-1.5">
+                  <div><strong className="text-brand-300">Decision: </strong>{adr.decision}</div>
+                  <div><strong className="text-slate-400">Rationale: </strong>{adr.rationale}</div>
+                  {adr.consequences && (
+                    <div className="text-slate-400 pt-1 border-t border-slate-800"><strong className="text-amber-400">Trade-offs & Consequences: </strong>{adr.consequences}</div>
+                  )}
+                </div>
+
+                {/* Linked Requirements and RAG Evidence Citations */}
+                <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-800 text-xs">
+                  {adr.requirement_ids && adr.requirement_ids.length > 0 && (
+                    <div className="flex items-center space-x-1">
+                      <span className="text-slate-400 font-mono text-[11px]">FRs:</span>
+                      {adr.requirement_ids.map((fr) => (
+                        <span key={fr} className="font-mono text-[10px] text-brand-300 bg-brand-500/10 px-1.5 py-0.5 rounded border border-brand-500/20">
+                          {fr}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {adr.evidence_ids && adr.evidence_ids.length > 0 && (
+                    <div className="flex items-center space-x-1">
+                      <span className="text-slate-400 font-mono text-[11px]">RAG Evidence:</span>
+                      {adr.evidence_ids.map((ev) => (
+                        <span key={ev} className="font-mono text-[10px] text-accent-cyan bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20 font-bold">
+                          {ev}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Strategies Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -24,6 +24,8 @@ from app.services.impact_service import analyze_requirement_impact, apply_target
 from app.services.project_service import save_complete_blueprint, get_complete_blueprint, list_projects
 from app.services.export_service import export_markdown_dossier, export_openapi_spec, export_jira_backlog
 from app.llm.factory import MetricsTracker
+from app.rag.retriever import get_indexed_documents_catalog, get_all_indexed_chunks, load_and_ingest_knowledge_base
+from app.rag.qdrant_client import vector_store
 
 logger = logging.getLogger("software-blueprint-ai.api")
 
@@ -172,6 +174,35 @@ async def get_rag_sources(project_id: str):
     if not bp:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Project '{project_id}' not found.")
     return bp.rag_recommendations
+
+
+@router.get("/rag/documents", tags=["RAG Knowledge Base"], summary="Get all indexed knowledge base documents")
+async def get_rag_documents():
+    """Return catalog of all indexed software architecture documents with metadata, citations, and sections."""
+    return get_indexed_documents_catalog()
+
+
+@router.get("/rag/chunks", tags=["RAG Knowledge Base"], summary="Get all indexed vector chunks")
+async def get_rag_chunks():
+    """Return all hierarchical knowledge chunks with context breadcrumbs, keywords, and excerpts."""
+    return get_all_indexed_chunks()
+
+
+@router.get("/rag/qdrant-info", tags=["RAG Knowledge Base"], summary="Get Qdrant Vector Engine status & dashboard instructions")
+async def get_qdrant_info():
+    """Return Qdrant connection status, dashboard URL, collection configuration, and vector stats."""
+    return vector_store.get_status()
+
+
+@router.post("/rag/reindex", tags=["RAG Knowledge Base"], summary="Re-index all documents into vector store")
+async def reindex_rag_documents():
+    """Trigger complete re-indexing of all knowledge documents into Qdrant / memory vector store."""
+    count = load_and_ingest_knowledge_base()
+    return {
+        "status": "success",
+        "chunks_ingested": count,
+        "message": f"Successfully ingested {count} hierarchical chunks into vector store."
+    }
 
 
 @router.get("/projects/{project_id}/versions", tags=["Versioning"], summary="Get Blueprint Version History")
