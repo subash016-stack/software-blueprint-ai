@@ -480,12 +480,12 @@ def build_docx(filename="SOFTWARE_BLUEPRINT_AI_METRICS_AND_VALIDATION_GUIDE.docx
     doc.add_paragraph().paragraph_format.space_after = Pt(6)
 
     # -------------------------------------------------------------
-    # SECTION 4: REQUIREMENT AGENT RICE & MOSCOW SCHEMA CODE
+    # SECTION 4: MANUAL PYTHON RICE ENGINE & DETERMINISTIC CODE IMPLEMENTATION
     # -------------------------------------------------------------
     h4 = doc.add_paragraph()
     h4.paragraph_format.space_before = Pt(14)
     h4.paragraph_format.space_after = Pt(4)
-    r = h4.add_run("4. REQUIREMENT AGENT RICE & MOSCOW CODE IMPLEMENTATION")
+    r = h4.add_run("4. MANUAL PYTHON RICE ENGINE & DETERMINISTIC CODE IMPLEMENTATION")
     r.bold = True
     r.font.name = "Calibri"
     r.font.size = Pt(14)
@@ -495,66 +495,51 @@ def build_docx(filename="SOFTWARE_BLUEPRINT_AI_METRICS_AND_VALIDATION_GUIDE.docx
     p_code_intro.paragraph_format.space_before = Pt(2)
     p_code_intro.paragraph_format.space_after = Pt(4)
     r = p_code_intro.add_run(
-        "Below is the exact code from app/agents/requirement_agent.py (lines 38 to 65) demonstrating how the Requirement Analysis Agent "
-        "prompts the LLM to elicit both qualitative MoSCoW prioritization and quantitative RICE framework scores, and how it executes "
-        "automatic backlog rank ordering:"
+        "To eliminate LLM arithmetic hallucinations and ensure 100% reproducible backlog ranking, we extracted the quantitative RICE algorithm "
+        "entirely out of the LLM prompt into a dedicated, pure Python manual calculation engine (app/services/rice_service.py). "
+        "The LLM is tasked solely with qualitative elicitation (stakeholders, descriptions, and MoSCoW tiers), while Python executes the exact mathematical formulas:"
     )
     r.font.name = "Calibri"
     r.font.size = Pt(9.5)
     r.font.color.rgb = RGBColor(0x33, 0x41, 0x55)
 
-    code_snippet = '''# app/agents/requirement_agent.py (lines 38-65)
+    code_snippet = '''# app/services/rice_service.py: Pure Python Manual RICE Engine
 
-def generate_requirements(project_idea: str) -> RequirementAnalysis:
-    """Analyze a project idea and return structured RequirementAnalysis with MoSCoW and RICE scores."""
-    if not project_idea or not project_idea.strip():
-        raise ValueError("Project idea cannot be empty.")
+def compute_manual_rice_score(
+    fr: FunctionalRequirement,
+    stakeholders: List[Stakeholder],
+    ambiguities: List[Ambiguity],
+    tasks: Optional[List[Any]] = None
+) -> RICEScore:
+    """Compute complete RICE score manually in pure Python code:
+    RICE Score = (Reach * Impact * Confidence) / Effort
+    """
+    reach = calculate_manual_reach(fr, stakeholders)        # Stakeholder scope * MoSCoW multiplier * 5,000 cohort
+    impact = calculate_manual_impact(fr)                    # Standardized scale: 3.0 (Core Must) to 0.25 (Won't)
+    confidence = calculate_manual_confidence(fr, ambiguities) # 1.0 (High), 0.8 (Med), 0.5 (Low) audited for ambiguities
+    effort = calculate_manual_effort(fr, tasks)              # Derived or calibrated: WBS Task Hours / 160 hrs/person-month
 
-    prompt_content = f"""Analyze this software project idea and output a valid JSON object matching this exact schema:
+    eff = max(0.1, effort)
+    score = round((reach * impact * confidence) / eff, 2)
 
-JSON Schema:
-{{
-  "project_name": "string",
-  "project_description": "string",
-  "stakeholders": [
-    {{"id": "ST-001", "name": "string", "description": "string"}}
-  ],
-  "functional_requirements": [
-    {{
-      "id": "FR-001",
-      "title": "string",
-      "description": "string",
-      "priority": "Must",
-      "stakeholders": ["ST-001"],
-      "rice": {{
-        "reach": 5000,
-        "impact": 2.0,
-        "confidence": 0.8,
-        "effort": 1.5
-      }}
-    }}
-  ],
-  "non_functional_requirements": [
-    {{"id": "NFR-001", "category": "Performance", "description": "string", "metric": "Latency < 200ms"}}
-  ],
-  "constraints": ["string"],
-  "ambiguities": ["string"]
-}}
+    return RICEScore(reach=reach, impact=impact, confidence=confidence, effort=effort, score=score)
 
-Project Idea:
-{project_idea}
-"""
-
-    messages = [
-        SystemMessage(content=REQUIREMENT_SYSTEM_PROMPT),
-        HumanMessage(content=prompt_content),
-    ]
-
-    # Structured Pydantic v2 invocation with fuzzy sanitization
-    analysis = invoke_structured(messages, RequirementAnalysis)
+def apply_manual_rice_algorithm(
+    analysis: RequirementAnalysis,
+    project_plan: Optional[ProjectPlan] = None,
+    force_recalculate: bool = False
+) -> RequirementAnalysis:
+    """Calculates RICE scores manually and deterministically sorts backlog in descending order (#1, #2, #3...)."""
+    for fr in analysis.functional_requirements:
+        if fr.rice is None or force_recalculate:
+            fr.rice = compute_manual_rice_score(fr, analysis.stakeholders, analysis.ambiguities, project_plan.tasks if project_plan else None)
     
-    # Deterministic Post-Processing: Compute RICE score and rank backlog descending
-    analysis.populate_and_rank_rice_scores()
+    # Deterministic Backlog Ranking (sorted descending by RICE score)
+    sorted_frs = sorted(analysis.functional_requirements, key=lambda f: f.rice.score if f.rice else 0.0, reverse=True)
+    for rank_idx, s_fr in enumerate(sorted_frs, start=1):
+        if s_fr.rice:
+            s_fr.rice.rank = rank_idx
+    analysis.functional_requirements = sorted_frs
     return analysis'''
 
     format_code_block(doc, code_snippet)
@@ -562,11 +547,13 @@ Project Idea:
     # Line-by-line explanation callout
     create_callout_box(
         doc,
-        "Code Walkthrough & Mathematical Guarantees",
+        "Mathematical Breakdown: Why Manual Code Beats LLM Estimation",
         [
-            "1. Dual Prioritization (Lines 56-65): Notice that each requirement defines both qualitative MoSCoW priority ('Must', 'Should', 'Could', 'Won't') AND quantitative RICE parameters (reach, impact, confidence, effort).",
-            "2. RICE Formula: RICE Score = (Reach × Impact × Confidence) / Effort. Reach is monthly affected users (e.g. 5,000), Impact is business goal contribution (0.25 to 3.0), Confidence is data certainty (0.5 to 1.0), and Effort is person-months (clamped to >= 0.1 to prevent division by zero).",
-            "3. Deterministic Post-Processing (populate_and_rank_rice_scores): Even if the LLM hallucinates inconsistent math, the post-processing method re-computes all RICE scores using pure Python arithmetic and automatically sorts the requirements backlog in descending order of score, assigning ranks #1, #2, #3 objectively."
+            "1. Reach (R): Computed manually from stakeholder role weights (Customer = 1.0, Staff/Operator = 0.35, Admin = 0.08) and MoSCoW multipliers (Must=1.0, Should=0.75, Could=0.40, Won't=0.15) against a baseline monthly cohort (5,000 users/month).",
+            "2. Impact (I): Computed manually using standardized weights: 3.0 (Massive core value drivers: payment, auth, orders), 2.0 (High primary features), 1.0 (Medium), 0.5 (Low), 0.25 (Minimal).",
+            "3. Confidence (C): Computed manually by auditing specification completeness, presence of stakeholder mappings, and ambiguity overlap penalties (100% High, 80% Medium, 50% Low/Moonshot).",
+            "4. Effort (E) & WBS Calibration: Computed manually in person-months (>= 0.2), and dynamically calibrated against Module 2 actual engineering tasks: Effort = Sum(Task Hours) / 160 hours per person-month.",
+            "5. Deterministic Backlog Auto-Ranking: Requirements are objectively sorted descending by RICE score with sequential ranks (#1, #2, #3, ...) without any LLM hallucination."
         ],
         bg_color="EFF6FF",
         border_color="2563EB"
@@ -712,6 +699,10 @@ Project Idea:
         (
             "Q6: How do you mathematically prove that your Requirements Agent classifies functional and non-functional requirements accurately?",
             "Model Answer: We implemented Method A Ground-Truth Benchmarking: we constructed a 120-item benchmark dataset (60 FR, 60 NFR) across 10 software domains with independent dual-reviewer consensus verification. The Requirements Agent was evaluated on this benchmark, achieving 97.5% overall accuracy, 95.2% FR precision, 100% FR recall (F1 = 0.976), and 100% NFR precision (F1 = 0.974). This provides verifiable empirical evidence defending our classification accuracy to stakeholders and review panels."
+        ),
+        (
+            "Q7: Why did you move the RICE algorithm out of the LLM prompt and into pure Python code?",
+            "Model Answer: Asking an LLM to generate Reach, Impact, Confidence, and Effort numbers in JSON produces arbitrary, non-reproducible estimations and math hallucinations. LLMs are generative language models, not arithmetic engines. In Software Blueprint AI, we separate qualitative elicitation from quantitative mathematics: the LLM focuses purely on eliciting requirements, stakeholders, MoSCoW priorities, and descriptions. Then, our dedicated Python engine (app/services/rice_service.py) computes Reach from stakeholder role scope and MoSCoW multipliers, Impact from domain value drivers, Confidence from ambiguity overlap penalties, and Effort from actual WBS engineering hours (Task Hours / 160). This guarantees 100% mathematical determinism, transparent explainability, and zero hallucination."
         )
     ]
 

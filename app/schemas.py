@@ -284,38 +284,12 @@ class RequirementAnalysis(BaseModel):
     )
 
     def populate_and_rank_rice_scores(self) -> "RequirementAnalysis":
-        """Deterministic helper to ensure every functional requirement has a computed RICE score and objective backlog rank."""
+        """Deterministic manual RICE algorithm implementation in pure code to calculate RICE metrics and rank backlog."""
         if not self.functional_requirements:
             return self
 
-        # Default parameters mapping from MoSCoW if rice is missing
-        moscow_defaults = {
-            Priority.MUST: {"reach": 5000.0, "impact": 3.0, "confidence": 0.9, "effort": 1.5},
-            Priority.SHOULD: {"reach": 2500.0, "impact": 2.0, "confidence": 0.8, "effort": 1.5},
-            Priority.COULD: {"reach": 1000.0, "impact": 1.0, "confidence": 0.7, "effort": 1.0},
-            Priority.WONT: {"reach": 300.0, "impact": 0.5, "confidence": 0.5, "effort": 2.0},
-        }
-
-        for idx, fr in enumerate(self.functional_requirements):
-            if fr.rice is None:
-                p_key = fr.priority if isinstance(fr.priority, Priority) else Priority(fr.priority)
-                defs = moscow_defaults.get(p_key, {"reach": 2000.0, "impact": 2.0, "confidence": 0.8, "effort": 1.5})
-                # Slightly vary reach by index so scores don't tie identically
-                reach_val = round(defs["reach"] * (1.0 - (idx * 0.04)), 0)
-                fr.rice = RICEScore(
-                    reach=reach_val,
-                    impact=defs["impact"],
-                    confidence=defs["confidence"],
-                    effort=defs["effort"]
-                )
-
-        # Rank requirements in descending order of RICE score
-        sorted_frs = sorted(self.functional_requirements, key=lambda f: f.rice.score if f.rice else 0.0, reverse=True)
-        for rank_idx, s_fr in enumerate(sorted_frs, start=1):
-            if s_fr.rice:
-                s_fr.rice.rank = rank_idx
-
-        return self
+        from app.services.rice_service import apply_manual_rice_algorithm
+        return apply_manual_rice_algorithm(self, force_recalculate=False)
 
     @model_validator(mode="after")
     def auto_populate_rice(self) -> "RequirementAnalysis":

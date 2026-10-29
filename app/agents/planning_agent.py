@@ -104,8 +104,12 @@ def planning_agent_node(state: BlueprintState) -> BlueprintState:
 
     try:
         project_plan = generate_project_plan(requirements)
+        # Calibrate RICE effort metrics in pure code using actual WBS task hours
+        from app.services.rice_service import apply_manual_rice_algorithm
+        requirements = apply_manual_rice_algorithm(requirements, project_plan=project_plan)
         return {
             **state,
+            "requirements": requirements,
             "project_plan": project_plan,
         }
     except Exception as e:

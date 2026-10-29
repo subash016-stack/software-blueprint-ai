@@ -232,3 +232,118 @@ def test_requirement_analysis_auto_ranks_rice():
     # FR-003 must be Rank #3 (score 250)
     assert fr_low.rice.rank == 3
 
+
+def test_manual_rice_reach_calculation():
+    """Test manual Reach computation by stakeholder scope and MoSCoW multiplier."""
+    from app.services.rice_service import calculate_manual_reach
+
+    st_user = Stakeholder(id="ST-001", name="End Customer", description="General consumer.")
+    st_admin = Stakeholder(id="ST-002", name="System Admin", description="Security and IT administrator.")
+    st_ops = Stakeholder(id="ST-003", name="Fleet Dispatcher", description="Operator managing drivers.")
+
+    # 1. Customer + Must -> Scope 1.0 * Mult 1.0 * 5000 = 5000
+    fr_customer = FunctionalRequirement(
+        id="FR-001", title="Browse Catalog", description="Search products.",
+        priority=Priority.MUST, stakeholders=["ST-001"]
+    )
+    reach_cust = calculate_manual_reach(fr_customer, [st_user, st_admin, st_ops])
+    assert reach_cust == 5000.0
+
+    # 2. Admin + Must -> Scope 0.08 * Mult 1.0 * 5000 = 400
+    fr_admin = FunctionalRequirement(
+        id="FR-002", title="Admin Audit Logs", description="View audit entries.",
+        priority=Priority.MUST, stakeholders=["ST-002"]
+    )
+    reach_admin = calculate_manual_reach(fr_admin, [st_user, st_admin, st_ops])
+    assert reach_admin == 400.0
+
+    # 3. Ops + Should -> Scope 0.35 * Mult 0.75 * 5000 = 1312.5 -> round to 1312
+    fr_ops = FunctionalRequirement(
+        id="FR-003", title="Dispatch Overview", description="Staff route controls.",
+        priority=Priority.SHOULD, stakeholders=["ST-003"]
+    )
+    reach_ops = calculate_manual_reach(fr_ops, [st_user, st_admin, st_ops])
+    assert reach_ops == 1312.0
+
+
+def test_manual_rice_impact_calculation():
+    """Test manual Impact computation by business criticality and MoSCoW tier."""
+    from app.services.rice_service import calculate_manual_impact
+
+    # Core driver + Must = 3.0 (Massive)
+    fr_core = FunctionalRequirement(
+        id="FR-001", title="Payment Checkout", description="Process secure payment card transactions.",
+        priority=Priority.MUST
+    )
+    assert calculate_manual_impact(fr_core) == 3.0
+
+    # Non-core + Must = 2.0 (High)
+    fr_must = FunctionalRequirement(
+        id="FR-002", title="User Profile", description="Edit profile username and bio.",
+        priority=Priority.MUST
+    )
+    assert calculate_manual_impact(fr_must) == 2.0
+
+    # Could = 0.5 (Low)
+    fr_could = FunctionalRequirement(
+        id="FR-003", title="Custom Avatars", description="Upload cartoon avatar images.",
+        priority=Priority.COULD
+    )
+    assert calculate_manual_impact(fr_could) == 0.5
+
+
+def test_manual_rice_confidence_calculation():
+    """Test manual Confidence computation by ambiguity overlap and specification completeness."""
+    from app.services.rice_service import calculate_manual_confidence
+
+    amb = Ambiguity(
+        ambiguity="Payment gateway webhook retry interval is unspecified.",
+        possible_clarification="Should failed payment webhooks retry exponentially up to 3 times?"
+    )
+
+    # FR overlapping with payment ambiguity
+    fr_amb = FunctionalRequirement(
+        id="FR-001", title="Payment Webhook Handler",
+        description="Listen to external payment webhook callbacks and mark order paid.",
+        priority=Priority.MUST, stakeholders=["ST-001"]
+    )
+    conf_amb = calculate_manual_confidence(fr_amb, [amb])
+    assert conf_amb < 1.0  # Penalized due to ambiguity overlap
+
+    # Fully specified FR with no ambiguity overlap
+    fr_clear = FunctionalRequirement(
+        id="FR-002", title="User Password Reset",
+        description="The customer shall receive an email with a secure time-limited token to reset their password.",
+        priority=Priority.MUST, stakeholders=["ST-001"]
+    )
+    conf_clear = calculate_manual_confidence(fr_clear, [amb])
+    assert conf_clear == 1.0  # 100% confidence
+
+
+def test_manual_rice_effort_and_wbs_calibration():
+    """Test manual Effort calculation and calibration against actual WBS task hours."""
+    from app.services.rice_service import calculate_manual_effort
+    from app.schemas import Task
+
+    fr = FunctionalRequirement(
+        id="FR-001", title="Biometric Authentication",
+        description="Verify fingerprint or face recognition for real-time sign in.",
+        priority=Priority.MUST, stakeholders=["ST-001", "ST-002"]
+    )
+
+    # Heuristic effort without tasks
+    effort_raw = calculate_manual_effort(fr, tasks=None)
+    assert effort_raw >= 1.0
+
+    # Calibration with actual WBS tasks: 2 tasks totaling 32 hours -> 32 / 160 = 0.2 person-months
+    t1 = Task(
+        id="T-001", title="Biometric SDK Integration", description="Hook up native SDK",
+        requirement_ids=["FR-001"], estimated_hours=16.0, dependencies=[]
+    )
+    t2 = Task(
+        id="T-002", title="Biometric Auth API endpoint", description="Verify tokens",
+        requirement_ids=["FR-001"], estimated_hours=16.0, dependencies=["T-001"]
+    )
+    effort_wbs = calculate_manual_effort(fr, tasks=[t1, t2])
+    assert effort_wbs == 0.20  # Exactly 32 hrs / 160 hrs/pm = 0.2 person-months
+

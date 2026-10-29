@@ -13,7 +13,7 @@ from app.llm import invoke_structured
 
 logger = logging.getLogger("software-blueprint-ai.requirements")
 
-REQUIREMENT_SYSTEM_PROMPT = """You are a Principal Software Requirements Engineer with deep expertise in systems analysis, qualitative MoSCoW prioritization, and the quantitative RICE Prioritization Framework (Reach, Impact, Confidence, Effort).
+REQUIREMENT_SYSTEM_PROMPT = """You are a Principal Software Requirements Engineer with deep expertise in systems analysis and qualitative MoSCoW prioritization (Must, Should, Could, Won't).
 
 Your task is to analyze the user's natural-language software project idea and produce a structured, high-traceability Software Requirements Specification (SRS).
 
@@ -24,12 +24,6 @@ GUIDELINES:
    - Generate exactly 3-4 concise, high-priority, testable functional requirements (Format IDs strictly as FR-001, FR-002, FR-003, FR-004).
    - Qualitative Prioritization (MoSCoW):
      - Assign MoSCoW priority: "Must", "Should", "Could", or "Won't".
-   - Quantitative Prioritization (RICE Framework):
-     - Calculate Reach: How many users/events will this feature affect in a given timeframe? (e.g. 5,000 customers per month).
-     - Calculate Impact: How much will this contribute to primary goal? Standardized scale: 3.0 for massive impact, 2.0 for high, 1.0 for medium, 0.5 for low, 0.25 for minimal.
-     - Calculate Confidence: How sure are you about your estimation data? (1.0 for 100% high confidence, 0.8 for 80% medium, 0.5 for 50% low/moonshot).
-     - Calculate Effort: How much time will it take from product, design, and engineering? Measured in person-months or team-weeks (e.g. 0.5 to 3.0).
-     - Formula: RICE Score = (Reach * Impact * Confidence) / Effort.
    - Map each requirement to relevant stakeholder IDs (e.g. ["ST-001"]).
 3. Non-Functional Requirements (NFRs):
    - Provide 2 measurable NFRs (Format IDs strictly as NFR-001, NFR-002).
@@ -43,7 +37,7 @@ Return the result conforming strictly to the requested JSON schema. Keep descrip
 
 
 def generate_requirements(project_idea: str) -> RequirementAnalysis:
-    """Analyze a project idea and return structured RequirementAnalysis with MoSCoW and RICE scores."""
+    """Analyze a project idea and return structured RequirementAnalysis with deterministic manual RICE scoring."""
     if not project_idea or not project_idea.strip():
         raise ValueError("Project idea cannot be empty.")
 
@@ -62,13 +56,7 @@ JSON Schema:
       "title": "string",
       "description": "string",
       "priority": "Must",
-      "stakeholders": ["ST-001"],
-      "rice": {{
-        "reach": 5000,
-        "impact": 2.0,
-        "confidence": 0.8,
-        "effort": 1.5
-      }}
+      "stakeholders": ["ST-001"]
     }}
   ],
   "non_functional_requirements": [
@@ -91,7 +79,9 @@ Project Idea:
     ]
 
     analysis = invoke_structured(messages, RequirementAnalysis)
-    analysis.populate_and_rank_rice_scores()
+    # Execute deterministic manual RICE prioritization in pure Python code
+    from app.services.rice_service import apply_manual_rice_algorithm
+    analysis = apply_manual_rice_algorithm(analysis, force_recalculate=True)
     return analysis
 
 

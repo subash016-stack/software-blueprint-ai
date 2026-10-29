@@ -260,7 +260,7 @@ def build_pdf(filename="SOFTWARE_BLUEPRINT_AI_COMPLETE_PROJECT_MANUAL.pdf"):
         ],
         [
             Paragraph("<b>Graph Engine:</b> NetworkX Multi-Tier Traceability", body_style),
-            Paragraph("<b>Test Suite:</b> 47/47 Unit & Integration Tests Passing (100%)", body_style)
+            Paragraph("<b>Test Suite:</b> 51/51 Unit & Integration Tests Passing (100%)", body_style)
         ]
     ]
     meta_table = Table(meta_table_data, colWidths=[250, 254])
@@ -321,8 +321,8 @@ def build_pdf(filename="SOFTWARE_BLUEPRINT_AI_COMPLETE_PROJECT_MANUAL.pdf"):
 
     flow_steps = [
         ("Step 1: Input Elicitation & Ingestion", "The user inputs a natural language prompt on the React Dashboard or uploads a PRD. The payload is sent via HTTP POST to FastAPI `/api/v1/projects`."),
-        ("Step 2: Module 1 — Requirement Analysis Agent (app/agents/requirement_agent.py)", "Extracts primary Stakeholders (ST-001..), formal Functional Requirements (FR-001.. with Dual Prioritization: qualitative MoSCoW & quantitative RICE ranking), measurable Non-Functional Requirements (NFR-001.. across latency, security, and scalability), constraints, and detected ambiguities with suggested clarifications."),
-        ("Step 3: Module 2 — Project Planning Agent (app/agents/planning_agent.py)", "Consumes the structured SRS and synthesizes a Work Breakdown Structure (WBS): groups requirements into cohesive Subsystems/Modules (MOD-001..), breaks them down into fine-grained Tasks (T-001..) with estimated hours and prerequisite dependencies, defines deliverable Milestones (M-001..), and constructs an engineering Roadmap."),
+        ("Step 2: Module 1 — Requirement Analysis Agent & Manual RICE Engine (app/agents/requirement_agent.py & app/services/rice_service.py)", "Extracts primary Stakeholders (ST-001..), formal Functional Requirements (FR-001.. with qualitative MoSCoW prioritization), and measurable Non-Functional Requirements. Then, a dedicated pure Python manual calculation engine (app/services/rice_service.py) computes Reach, Impact, Confidence, and Effort without LLM arithmetic hallucinations, deterministically ranking the backlog descending by RICE score (#1, #2, #3...)."),
+        ("Step 3: Module 2 — Project Planning Agent & Effort Calibration (app/agents/planning_agent.py)", "Consumes the structured SRS and synthesizes a Work Breakdown Structure (WBS): groups requirements into cohesive Subsystems/Modules (MOD-001..), breaks them down into fine-grained Tasks (T-001..) with estimated hours and prerequisite dependencies, defines deliverable Milestones (M-001..), and constructs an engineering Roadmap. The manual RICE engine dynamically calibrates requirement effort using actual WBS task hours (Sum(Task Hours) / 160)."),
         ("Step 4: Module 3 — Architecture Design Agent (app/agents/architecture_agent.py)", "Recommends an optimal architecture pattern (Modular Monolith, Event-Driven, Microservices). Generates C4 Model containers (CONT-001..), components (COMP-001..), REST APIs (API-001.. with HTTP verbs, request/response schemas), and database schemas (DB-001..). Generates Architecture Decision Records (ADRs) with explicit competitive justifications across 8 technology tiers."),
         ("Step 5: Module 4 — RAG Recommendation Agent (app/agents/rag_agent.py)", "Queries the local Qdrant vector database (`architecture_patterns` collection) using hierarchical embeddings. Retrieves authoritative literature chunks and injects evidence citations (`[ARCH-001]`, `[DATA-001]`, `[SEC-001]`) with similarity confidence scores and trade-off analyses."),
         ("Step 6: Module 5 — Validation & Quality Scoring Agent (app/agents/validation_agent.py)", "Executes a two-phase audit: Phase 1 Deterministic Audit (`app/validation/deterministic.py`) runs pure Python graph and schema checks (zero LLM hallucinations) evaluating DAG acyclicity, forward/backward coverage, and orphan nodes. Calculates 6 quality dimension scores (0–100) with full mathematical explainability."),
@@ -716,6 +716,10 @@ def build_pdf(filename="SOFTWARE_BLUEPRINT_AI_COMPLETE_PROJECT_MANUAL.pdf"):
         (
             "Q17: How do you verify and prove that the Requirements Agent classifies functional and non-functional requirements accurately?",
             "<b>Model Answer:</b> We implemented <b>Method A Ground-Truth Benchmarking</b> (`app/benchmark/requirement_evaluator.py`). We curated an authoritative dataset of 120 human-verified requirements (60 FR and 60 NFR) across 10 diverse software domains (Fintech, Healthcare, E-Commerce, IoT, Cloud, Security, Social Media, Logistics, EdTech, SaaS). Ambiguous edge cases were independently verified by two reviewers. In automated benchmark runs, our classification engine achieved <b>97.5% overall accuracy, 95.2% FR precision, 100% FR recall (F1 = 0.976), and 100% NFR precision (F1 = 0.974)</b>. This provides empirical, testable evidence defending requirement classification accuracy to academic panels and enterprise reviewers."
+        ),
+        (
+            "Q18: Why did you implement the RICE algorithm manually in code instead of prompting the LLM to output RICE scores?",
+            "<b>Model Answer:</b> Asking an LLM to generate numerical Reach, Impact, Confidence, and Effort values in JSON leads to arbitrary hallucinations, mathematical inconsistency, and unreproducible backlog rankings. Generative LLMs predict token distributions; they do not perform rigorous quantitative analysis. In Software Blueprint AI, we decoupled qualitative elicitation from quantitative mathematics: the LLM focuses purely on qualitative elicitation (stakeholder roles, functional descriptions, MoSCoW priorities, and ambiguity detection). Then, our dedicated Python engine (`app/services/rice_service.py`) computes Reach from stakeholder role scope (End-Users=1.0, Operators=0.35, Admins=0.08) and MoSCoW multipliers, Impact from domain value drivers, Confidence from ambiguity overlap penalties, and Effort from actual WBS engineering hours (Task Hours / 160). This guarantees 100% mathematical determinism, transparent explainability, and zero hallucination."
         )
     ]
 
