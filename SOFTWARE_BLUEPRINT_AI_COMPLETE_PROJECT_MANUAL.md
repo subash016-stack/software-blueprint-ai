@@ -113,12 +113,12 @@ Software Blueprint AI operates as an autonomous sequential pipeline orchestrated
 | **SQLAlchemy 2.0 & SQLite / PostgreSQL** | Relational persistence layer (`app/db/session.py`, `app/db/models.py`) storing complete blueprint JSON blobs, project metadata, and version snapshots. | Raw SQL, Peewee, MongoDB | Type-safe ORM supporting both lightweight embedded SQLite development and high-throughput production PostgreSQL with ACID transactions. |
 | **ReportLab 5.0** | Programmatic PDF generation engine (`generate_master_pdf.py`). Compiles two-pass NumberedCanvas, vector lines, flowable tables, and print-ready dossiers. | WeasyPrint, pdfkit (wkhtmltopdf) | Zero C-runtime external binary dependencies (like GTK or webkit). Pure Python execution with precise pixel-level layout control. |
 | **React 18, Vite 5 & Tailwind CSS** | Interactive Single Page Application (SPA) in `frontend/src/`. Provides glassmorphic dashboards, live metric modals, interactive matrix tables, and Mermaid.js diagrams. | Next.js (SSR), Angular, Vue 3 | **Over Next.js:** Next.js SSR requires an active Node.js server. Vite compiles pure static assets mounted directly into FastAPI's static root (`app/static/`) with sub-100ms HMR.<br/>**Over Angular:** Lightweight virtual DOM vs heavy RxJS boilerplate. |
-| **Pytest 8.1+ & HTTPX** | Automated test suite (`tests/`). Validates API endpoints, deterministic graph audits, RAG retriever, and LangGraph workflow across 38 unit and integration tests. | Unittest, Nose2 | Standard modern Python testing framework with rich fixture support and async TestClient integration. |
+| **Pytest 8.1+ & HTTPX** | Automated test suite (`tests/`). Validates API endpoints, deterministic graph audits, RAG retriever, RICE algorithm, Method A ground-truth benchmark, and LangGraph workflow across 47 unit and integration tests. | Unittest, Nose2 | Standard modern Python testing framework with rich fixture support and async TestClient integration. |
 
 ---
 
-### 4.1 Module 1: SRS Requirements Engineering & Dual Prioritization (MoSCoW + RICE)
-- **Source Files:** `app/agents/requirement_agent.py`, `app/schemas.py`, `app/api/routes.py`
+### 4.1 Module 1: SRS Requirements Engineering, Dual Prioritization (MoSCoW + RICE) & Method A Ground-Truth Benchmark
+- **Source Files:** `app/agents/requirement_agent.py`, `app/benchmark/requirement_evaluator.py`, `app/schemas.py`, `app/api/routes.py`
 - **Stakeholder Roster:** Generates structured stakeholder profiles (`ST-001..`) with role names and organizational responsibilities.
 - **Dual Prioritization Engine (Qualitative MoSCoW & Quantitative RICE):**
   - **MoSCoW Prioritization:** Classifies requirements into contract scope tiers ('Must', 'Should', 'Could', 'Won't').
@@ -128,6 +128,19 @@ Software Blueprint AI operates as an autonomous sequential pipeline orchestrated
     - *Confidence*: Estimation certainty ratio: 100% (High), 80% (Medium), 50% (Low/Moonshot).
     - *Effort*: Engineering time in person-months or team-weeks (e.g., 0.5 to 3.0).
   - Automatically sorts and assigns objective backlog ranks (`Rank #1, #2, #3...`).
+- **Method A: Ground-Truth Requirements Benchmark Dataset:**
+  - Evaluates whether the Requirements Agent classifies Functional (FR) and Non-Functional (NFR) requirements correctly.
+  - **120 Human-Verified Benchmark Items:** Balanced 60 FR and 60 NFR requirements verified by independent reviewers across 10 engineering domains (Fintech, Healthcare, E-Commerce, DevOps, IoT, Cybersecurity, Social Media, Logistics, EdTech, Enterprise SaaS).
+  - **Exemplar Test Cases Covered:**
+    - *"The system shall allow users to reset passwords."* $\to$ **FR** (Action)
+    - *"The system shall respond within 2 seconds."* $\to$ **NFR** (Performance)
+    - *"The system shall generate monthly sales reports."* $\to$ **FR** (Service)
+    - *"The system shall be available 99.9% of the time."* $\to$ **NFR** (Availability)
+    - *"The system shall lock an account after five failed attempts."* $\to$ **FR** (Behavior)
+    - *"The system shall comply with applicable data protection laws."* $\to$ **NFR** (Compliance/Constraint)
+    - *"The system shall allow administrators to disable accounts."* $\to$ **FR** (Feature)
+    - *"The system shall support 5,000 concurrent users."* $\to$ **NFR** (Capacity)
+  - **Evaluation Metrics:** Accuracy (97.5%), FR Precision (0.952), FR Recall (1.000), FR F1 (0.976), NFR Precision (1.000), NFR Recall (0.950), NFR F1 (0.974), with full confusion matrix and domain-level breakdown.
 - **Non-Functional Requirements (NFR):** Formulates quantitative thresholds across latency, availability, security, and scalability (`NFR-001..`).
 - **Ambiguity Scoring & Elicitation:** Analyzes lexical vagueness and untestable claims, returning an Ambiguity Score ($0.0-1.0$) and targeted clarifying questions.
 

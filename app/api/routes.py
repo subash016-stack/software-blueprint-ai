@@ -15,11 +15,17 @@ from app.schemas import (
     RequirementChangeRequest,
     ImpactReport,
     GenerateRequest,
-    GenerateResponse
+    GenerateResponse,
+    RequirementBenchmarkItem,
+    RequirementClassificationRequest,
+    RequirementClassificationResult,
+    BenchmarkEvaluationReport
 )
 from app.graph import run_blueprint_generation
 from app.services.graph_service import traceability_service
 from app.agents.architecture_agent import generate_architecture_flow_graph
+from app.agents.requirement_agent import classify_requirement, batch_classify_requirements
+from app.benchmark.requirement_evaluator import load_ground_truth_dataset, evaluate_classifier
 from app.services.impact_service import analyze_requirement_impact, apply_targeted_regeneration
 from app.services.project_service import save_complete_blueprint, get_complete_blueprint, list_projects
 from app.services.export_service import export_markdown_dossier, export_openapi_spec, export_jira_backlog
@@ -292,4 +298,71 @@ async def health_check_route():
         "embedding_model": settings.embedding_model,
         "version": "2.0.0"
     }
+
+
+# ==========================================
+# METHOD A: GROUND-TRUTH REQUIREMENT BENCHMARK ROUTES
+# ==========================================
+
+@router.get("/requirements/benchmark", tags=["Requirement Benchmark"], summary="Inspect Ground-Truth Benchmark Dataset")
+def get_benchmark_dataset(
+    limit: int = Query(20, ge=1, le=120, description="Number of sample items to preview"),
+    domain: Optional[str] = Query(None, description="Optional domain filter")
+):
+    """Retrieve metadata, domain distribution, and sample verified requirements from the ground-truth benchmark dataset."""
+    items = load_ground_truth_dataset()
+    if domain:
+        items = [i for i in items if domain.lower() in i.domain.lower()]
+
+    fr_count = sum(1 for i in items if i.expected_label == "FR")
+    nfr_count = sum(1 for i in items if i.expected_label == "NFR")
+    domains = sorted(list(set(i.domain for i in items)))
+
+    return {
+        "benchmark_name": "Method A: Human-Verified Ground-Truth Requirements Benchmark",
+        "total_requirements": len(items),
+        "fr_count": fr_count,
+        "nfr_count": nfr_count,
+        "domains": domains,
+        "preview_items": [i.model_dump() for i in items[:limit]]
+    }
+
+
+@router.post("/requirements/benchmark/evaluate", response_model=BenchmarkEvaluationReport, tags=["Requirement Benchmark"], summary="Evaluate Classifier Against Ground Truth")
+def run_benchmark_evaluation(
+    use_heuristic: bool = Query(True, description="If true, uses deterministic IEEE 830 rule baseline; if false, invokes local Ollama LLM")
+):
+    """
+    Execute benchmark evaluation comparing model predictions against approved human ground-truth labels.
+    Calculates Accuracy, FR/NFR Precision, Recall, F1 scores, Confusion Matrix, and Domain Breakdown.
+    """
+    try:
+        report = evaluate_classifier(use_heuristic=use_heuristic)
+        return report
+    except Exception as e:
+        logger.error("Benchmark evaluation failed: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Benchmark evaluation failed: {str(e)}"
+        )
+
+
+@router.post("/requirements/classify", tags=["Requirement Benchmark"], summary="Classify Requirements (FR vs NFR)")
+def classify_requirements_route(request: RequirementClassificationRequest):
+    """
+    Classify a single requirement or batch of requirements into Functional (FR) or Non-Functional (NFR).
+    """
+    if request.requirement:
+        result = classify_requirement(request.requirement, use_heuristic=request.use_heuristic)
+        return {"results": [result.model_dump()]}
+    elif request.requirements:
+        batch_items = [{"text": req, "id": f"REQ-{i+1:03d}"} for i, req in enumerate(request.requirements)]
+        results = batch_classify_requirements(batch_items, use_heuristic=request.use_heuristic)
+        return {"results": [r.model_dump() for r in results]}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Must provide either 'requirement' string or 'requirements' list."
+        )
+
 

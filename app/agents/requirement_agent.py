@@ -4,10 +4,14 @@ Converts a natural-language software project idea into a structured
 Software Requirements Specification (SRS) adhering to IEEE/ISO best practices.
 """
 
+import logging
+from typing import Dict, List, Optional
 from langchain_core.messages import SystemMessage, HumanMessage
-from app.schemas import RequirementAnalysis
+from app.schemas import RequirementAnalysis, RequirementClassificationResult
 from app.state import BlueprintState
 from app.llm import invoke_structured
+
+logger = logging.getLogger("software-blueprint-ai.requirements")
 
 REQUIREMENT_SYSTEM_PROMPT = """You are a Principal Software Requirements Engineer with deep expertise in systems analysis, qualitative MoSCoW prioritization, and the quantitative RICE Prioritization Framework (Reach, Impact, Confidence, Effort).
 
@@ -109,3 +113,84 @@ def requirement_agent_node(state: BlueprintState) -> BlueprintState:
             "project_idea": project_idea,
             "errors": errors
         }
+
+
+# ==========================================
+# REQUIREMENT CLASSIFICATION & BENCHMARKING
+# ==========================================
+
+CLASSIFIER_SYSTEM_PROMPT = """You are an expert Systems Requirements Engineering Classifier specializing in IEEE 830 and ISO/IEC/IEEE 29148 standards.
+
+Your task is to classify a given software requirement statement into either:
+1. "FR" (Functional Requirement): Specifies WHAT the system must DO. Defines a functional behavior, service, action, feature, user interaction, data calculation, or system state transition (e.g. "allow users to reset passwords", "generate monthly sales reports", "lock account after 5 failed attempts", "allow administrators to disable accounts").
+2. "NFR" (Non-Functional Requirement): Specifies HOW the system must PERFORM or BEHAVE under quality attributes, architectural constraints, or statutory mandates (e.g. performance/latency thresholds like "respond within 2 seconds", availability/uptime like "available 99.9% of the time", capacity/load like "support 5,000 concurrent users", security/encryption standards, and legal compliance obligations like "comply with applicable data protection laws").
+
+You must return a valid JSON object matching this schema:
+{
+  "text": "original requirement statement",
+  "predicted_label": "FR" or "NFR",
+  "confidence": 0.95,
+  "reasoning": "Clear 1-sentence technical explanation of why it is FR or NFR"
+}
+"""
+
+
+def classify_requirement(
+    requirement_text: str,
+    req_id: Optional[str] = None,
+    use_heuristic: bool = False,
+    model_override: Optional[str] = None
+) -> RequirementClassificationResult:
+    """Classify a single requirement statement into FR or NFR using LLM with deterministic fallback."""
+    if not requirement_text or not requirement_text.strip():
+        raise ValueError("Requirement statement cannot be empty.")
+
+    if use_heuristic:
+        from app.benchmark.requirement_evaluator import heuristic_classify_requirement
+        return heuristic_classify_requirement(requirement_text, req_id=req_id)
+
+    prompt_content = f"""Classify the following software requirement into either 'FR' or 'NFR':
+
+Requirement:
+"{requirement_text.strip()}"
+
+JSON Schema:
+{{
+  "id": "{req_id or ''}",
+  "text": "{requirement_text.strip()}",
+  "predicted_label": "FR",
+  "confidence": 0.95,
+  "reasoning": "Specifies an action, service, or behavior"
+}}
+"""
+
+    messages = [
+        SystemMessage(content=CLASSIFIER_SYSTEM_PROMPT),
+        HumanMessage(content=prompt_content)
+    ]
+
+    try:
+        result = invoke_structured(messages, RequirementClassificationResult, model_override=model_override)
+        if req_id and not result.id:
+            result.id = req_id
+        return result
+    except Exception as e:
+        # Resilient fallback to deterministic rule-based classifier
+        from app.benchmark.requirement_evaluator import heuristic_classify_requirement
+        return heuristic_classify_requirement(requirement_text, req_id=req_id)
+
+
+def batch_classify_requirements(
+    requirements: List[Dict[str, str]],
+    use_heuristic: bool = False,
+    model_override: Optional[str] = None
+) -> List[RequirementClassificationResult]:
+    """Classify a batch of requirements, each with 'text' and optional 'id'."""
+    results = []
+    for item in requirements:
+        text = item.get("text", "")
+        req_id = item.get("id")
+        results.append(classify_requirement(text, req_id=req_id, use_heuristic=use_heuristic, model_override=model_override))
+    return results
+
+

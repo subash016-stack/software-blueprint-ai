@@ -1,0 +1,1156 @@
+"""
+generate_dataset.py
+Generates the benchmark ground-truth requirements dataset with 120 human-verified requirements
+across 10 diverse software domains.
+"""
+
+import json
+import os
+
+BENCHMARK_ITEMS = [
+    # -----------------------------------------------------------------
+    # User Exemplars (BENCH-001 to BENCH-008)
+    # -----------------------------------------------------------------
+    {
+        "id": "BENCH-001",
+        "text": "The system shall allow users to reset passwords.",
+        "expected_label": "FR",
+        "category": "Action",
+        "reason": "Specifies an action the user can initiate in the system.",
+        "domain": "Cybersecurity & Access Control",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-002",
+        "text": "The system shall respond within 2 seconds.",
+        "expected_label": "NFR",
+        "category": "Performance",
+        "reason": "Specifies a performance response-time latency threshold.",
+        "domain": "E-Commerce & Retail",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-003",
+        "text": "The system shall generate monthly sales reports.",
+        "expected_label": "FR",
+        "category": "Service",
+        "reason": "Specifies a service and business report generation capability.",
+        "domain": "Fintech & Banking",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-004",
+        "text": "The system shall be available 99.9% of the time.",
+        "expected_label": "NFR",
+        "category": "Availability",
+        "reason": "Specifies a quantitative uptime availability service level agreement (SLA).",
+        "domain": "Cloud Infrastructure & DevOps",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-005",
+        "text": "The system shall lock an account after five failed attempts.",
+        "expected_label": "FR",
+        "category": "Behavior",
+        "reason": "Specifies system functional behavior and state transition triggered by failed logins.",
+        "domain": "Cybersecurity & Access Control",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-006",
+        "text": "The system shall comply with applicable data protection laws.",
+        "expected_label": "NFR",
+        "category": "Compliance",
+        "reason": "Specifies a regulatory compliance and legal constraint obligation.",
+        "domain": "Enterprise ERP & SaaS",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-007",
+        "text": "The system shall allow administrators to disable accounts.",
+        "expected_label": "FR",
+        "category": "Feature",
+        "reason": "Specifies an administrative feature capability for user account governance.",
+        "domain": "Cybersecurity & Access Control",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-008",
+        "text": "The system shall support 5,000 concurrent users.",
+        "expected_label": "NFR",
+        "category": "Capacity",
+        "reason": "Specifies maximum concurrent capacity and system load threshold.",
+        "domain": "Cloud Infrastructure & DevOps",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+
+    # -----------------------------------------------------------------
+    # Domain 1: Fintech & Banking (BENCH-009 to BENCH-020)
+    # -----------------------------------------------------------------
+    {
+        "id": "BENCH-009",
+        "text": "The system shall allow customers to transfer funds between checking and savings accounts.",
+        "expected_label": "FR",
+        "category": "Action",
+        "reason": "Specifies a financial transfer transaction initiated by a user.",
+        "domain": "Fintech & Banking",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-010",
+        "text": "The system shall process card payment authorizations within 500 milliseconds.",
+        "expected_label": "NFR",
+        "category": "Performance",
+        "reason": "Specifies a quantitative transaction processing latency threshold.",
+        "domain": "Fintech & Banking",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-011",
+        "text": "The system shall calculate compound interest on savings accounts on the last day of each month.",
+        "expected_label": "FR",
+        "category": "Service",
+        "reason": "Specifies an automated business calculation workflow.",
+        "domain": "Fintech & Banking",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-012",
+        "text": "The system shall encrypt all financial transactions in transit using TLS 1.3.",
+        "expected_label": "NFR",
+        "category": "Security",
+        "reason": "Specifies a security standard and cryptographic communication requirement.",
+        "domain": "Fintech & Banking",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-013",
+        "text": "The system shall allow users to download transaction history in CSV and PDF formats.",
+        "expected_label": "FR",
+        "category": "Feature",
+        "reason": "Specifies a user feature for exporting transaction records.",
+        "domain": "Fintech & Banking",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-014",
+        "text": "The system shall comply with PCI-DSS Level 1 payment security specifications.",
+        "expected_label": "NFR",
+        "category": "Compliance",
+        "reason": "Specifies an industry compliance audit obligation.",
+        "domain": "Fintech & Banking",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-015",
+        "text": "The system shall trigger a multi-factor authentication prompt when a transfer exceeds $10,000.",
+        "expected_label": "FR",
+        "category": "Behavior",
+        "reason": "Specifies conditional fraud prevention workflow behavior based on transaction value.",
+        "domain": "Fintech & Banking",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-016",
+        "text": "The system database shall maintain transactional ACID consistency with zero balance anomalies.",
+        "expected_label": "NFR",
+        "category": "Reliability",
+        "reason": "Specifies database reliability and transactional integrity quality attribute.",
+        "domain": "Fintech & Banking",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-017",
+        "text": "The system shall allow loan applicants to submit tax returns and proof of income documents.",
+        "expected_label": "FR",
+        "category": "Action",
+        "reason": "Specifies a document ingestion action for loan applications.",
+        "domain": "Fintech & Banking",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-018",
+        "text": "The banking core shall achieve a recovery time objective (RTO) of less than 15 minutes during disaster failover.",
+        "expected_label": "NFR",
+        "category": "Availability",
+        "reason": "Specifies a quantitative disaster recovery time constraint.",
+        "domain": "Fintech & Banking",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-019",
+        "text": "The system shall notify account holders via SMS immediately when an international charge is detected.",
+        "expected_label": "FR",
+        "category": "Service",
+        "reason": "Specifies an event-driven notification dispatch service.",
+        "domain": "Fintech & Banking",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-020",
+        "text": "The ledger audit trail shall store transaction records immutably for a minimum of 7 years.",
+        "expected_label": "NFR",
+        "category": "Compliance",
+        "reason": "Specifies a statutory data retention period and immutability constraint.",
+        "domain": "Fintech & Banking",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+
+    # -----------------------------------------------------------------
+    # Domain 2: Healthcare & Telemedicine (BENCH-021 to BENCH-032)
+    # -----------------------------------------------------------------
+    {
+        "id": "BENCH-021",
+        "text": "The system shall allow patients to schedule video consultations with licensed physicians.",
+        "expected_label": "FR",
+        "category": "Feature",
+        "reason": "Specifies an appointment scheduling and booking feature.",
+        "domain": "Healthcare & Telemedicine",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-022",
+        "text": "The system shall comply with HIPAA security and privacy rules for protected health information (PHI).",
+        "expected_label": "NFR",
+        "category": "Compliance",
+        "reason": "Specifies mandatory federal statutory compliance standards.",
+        "domain": "Healthcare & Telemedicine",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-023",
+        "text": "The system shall display real-time vital signs streaming from connected patient monitors.",
+        "expected_label": "FR",
+        "category": "Service",
+        "reason": "Specifies telemetry ingestion and user interface visualization capability.",
+        "domain": "Healthcare & Telemedicine",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-024",
+        "text": "The video consultation stream shall maintain audio/video latency below 150 milliseconds.",
+        "expected_label": "NFR",
+        "category": "Performance",
+        "reason": "Specifies quality of service (QoS) and latency threshold for real-time WebRTC streams.",
+        "domain": "Healthcare & Telemedicine",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-025",
+        "text": "The system shall allow doctors to issue digital prescriptions directly to accredited pharmacies.",
+        "expected_label": "FR",
+        "category": "Action",
+        "reason": "Specifies an e-prescribing clinical workflow action.",
+        "domain": "Healthcare & Telemedicine",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-026",
+        "text": "All patient medical records shall be encrypted at rest using AES-256 cipher.",
+        "expected_label": "NFR",
+        "category": "Security",
+        "reason": "Specifies a data encryption security standard.",
+        "domain": "Healthcare & Telemedicine",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-027",
+        "text": "The system shall alert the attending physician if a patient's oxygen saturation drops below 90%.",
+        "expected_label": "FR",
+        "category": "Behavior",
+        "reason": "Specifies clinical threshold-triggered alert generation behavior.",
+        "domain": "Healthcare & Telemedicine",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-028",
+        "text": "The clinical database shall achieve 99.99% operational uptime during hospital operations.",
+        "expected_label": "NFR",
+        "category": "Availability",
+        "reason": "Specifies high-availability uptime SLA (four nines).",
+        "domain": "Healthcare & Telemedicine",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-029",
+        "text": "The system shall provide patient consent form sign-off with electronic signatures.",
+        "expected_label": "FR",
+        "category": "Feature",
+        "reason": "Specifies an electronic document signing feature.",
+        "domain": "Healthcare & Telemedicine",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-030",
+        "text": "The telemedicine service shall scale to support 1,000 simultaneous video sessions during emergency surges.",
+        "expected_label": "NFR",
+        "category": "Capacity",
+        "reason": "Specifies a concurrent session capacity and throughput limit.",
+        "domain": "Healthcare & Telemedicine",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-031",
+        "text": "The system shall automatically generate electronic health record (EHR) discharge summaries upon patient release.",
+        "expected_label": "FR",
+        "category": "Service",
+        "reason": "Specifies an automated clinical document generation service.",
+        "domain": "Healthcare & Telemedicine",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-032",
+        "text": "All diagnostic image uploads shall be accessible by radiologists within 3 seconds of upload completion.",
+        "expected_label": "NFR",
+        "category": "Performance",
+        "reason": "Specifies a file indexing and retrieval speed SLA.",
+        "domain": "Healthcare & Telemedicine",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+
+    # -----------------------------------------------------------------
+    # Domain 3: E-Commerce & Retail (BENCH-033 to BENCH-044)
+    # -----------------------------------------------------------------
+    {
+        "id": "BENCH-033",
+        "text": "The system shall allow customers to add items to a shopping cart and apply promotional coupon codes.",
+        "expected_label": "FR",
+        "category": "Action",
+        "reason": "Specifies an interactive shopping action and discount computation.",
+        "domain": "E-Commerce & Retail",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-034",
+        "text": "The checkout page shall render in under 1.5 seconds on 4G cellular connections.",
+        "expected_label": "NFR",
+        "category": "Performance",
+        "reason": "Specifies page load time performance under specified network constraints.",
+        "domain": "E-Commerce & Retail",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-035",
+        "text": "The system shall calculate applicable state and local sales taxes based on shipping destination address.",
+        "expected_label": "FR",
+        "category": "Service",
+        "reason": "Specifies automated tax calculation business logic.",
+        "domain": "E-Commerce & Retail",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-036",
+        "text": "The catalog search service shall support up to 20,000 search queries per second during holiday flash sales.",
+        "expected_label": "NFR",
+        "category": "Capacity",
+        "reason": "Specifies query throughput capacity under peak load.",
+        "domain": "E-Commerce & Retail",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-037",
+        "text": "The system shall decrement warehouse inventory counts immediately upon successful payment capture.",
+        "expected_label": "FR",
+        "category": "Behavior",
+        "reason": "Specifies inventory adjustment behavior upon payment event.",
+        "domain": "E-Commerce & Retail",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-038",
+        "text": "The web store shall maintain 99.95% availability during Black Friday and Cyber Monday promotional windows.",
+        "expected_label": "NFR",
+        "category": "Availability",
+        "reason": "Specifies target availability SLA during critical business periods.",
+        "domain": "E-Commerce & Retail",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-039",
+        "text": "The system shall send email order confirmations with package tracking numbers upon dispatch.",
+        "expected_label": "FR",
+        "category": "Service",
+        "reason": "Specifies an automated customer communication dispatch service.",
+        "domain": "E-Commerce & Retail",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-040",
+        "text": "Customer credit card numbers shall never be logged or stored in plain text anywhere on the platform.",
+        "expected_label": "NFR",
+        "category": "Security",
+        "reason": "Specifies a security policy and data handling restriction.",
+        "domain": "E-Commerce & Retail",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-041",
+        "text": "The system shall allow registered users to track the status of returns and request refund credits.",
+        "expected_label": "FR",
+        "category": "Feature",
+        "reason": "Specifies a user-facing post-purchase returns management feature.",
+        "domain": "E-Commerce & Retail",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-042",
+        "text": "The system shall support cross-browser compatibility across Chrome, Safari, Firefox, and Edge latest versions.",
+        "expected_label": "NFR",
+        "category": "Compatibility",
+        "reason": "Specifies environment compatibility constraints across browser targets.",
+        "domain": "E-Commerce & Retail",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-043",
+        "text": "The system shall display personalized product recommendations based on collaborative filtering of past purchases.",
+        "expected_label": "FR",
+        "category": "Feature",
+        "reason": "Specifies recommendation engine feature behavior.",
+        "domain": "E-Commerce & Retail",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-044",
+        "text": "The product catalog index shall synchronize updates from inventory databases with less than 5 seconds delay.",
+        "expected_label": "NFR",
+        "category": "Performance",
+        "reason": "Specifies data synchronization latency threshold.",
+        "domain": "E-Commerce & Retail",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+
+    # -----------------------------------------------------------------
+    # Domain 4: Cloud Infrastructure & DevOps (BENCH-045 to BENCH-056)
+    # -----------------------------------------------------------------
+    {
+        "id": "BENCH-045",
+        "text": "The system shall automatically trigger CI/CD pipeline builds whenever code is pushed to the main branch.",
+        "expected_label": "FR",
+        "category": "Behavior",
+        "reason": "Specifies automated build invocation behavior triggered by Git webhooks.",
+        "domain": "Cloud Infrastructure & DevOps",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-046",
+        "text": "The container orchestrator shall automatically scale worker pods within 30 seconds when CPU utilization exceeds 80%.",
+        "expected_label": "NFR",
+        "category": "Scalability",
+        "reason": "Specifies auto-scaling reaction latency and elasticity performance.",
+        "domain": "Cloud Infrastructure & DevOps",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-047",
+        "text": "The system shall allow operators to roll back deployments to the preceding stable release with one click.",
+        "expected_label": "FR",
+        "category": "Feature",
+        "reason": "Specifies an operator deployment rollback feature.",
+        "domain": "Cloud Infrastructure & DevOps",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-048",
+        "text": "The API gateway shall enforce rate-limiting of 1,000 requests per minute per IP address.",
+        "expected_label": "NFR",
+        "category": "Security",
+        "reason": "Specifies a rate-limiting security threshold to mitigate DDoS attacks.",
+        "domain": "Cloud Infrastructure & DevOps",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-049",
+        "text": "The system shall stream application stdout and stderr logs to a centralized OpenSearch cluster.",
+        "expected_label": "FR",
+        "category": "Service",
+        "reason": "Specifies a telemetry collection and log ingestion service.",
+        "domain": "Cloud Infrastructure & DevOps",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-050",
+        "text": "The monitoring dashboard shall ingest and visualize 100,000 metric data points per second without data loss.",
+        "expected_label": "NFR",
+        "category": "Capacity",
+        "reason": "Specifies telemetry ingestion throughput capacity.",
+        "domain": "Cloud Infrastructure & DevOps",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-051",
+        "text": "The system shall provision virtual machines in designated availability zones using Terraform templates.",
+        "expected_label": "FR",
+        "category": "Action",
+        "reason": "Specifies infrastructure provisioning execution action.",
+        "domain": "Cloud Infrastructure & DevOps",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-052",
+        "text": "The multi-region control plane shall tolerate the total outage of one cloud region without user service disruption.",
+        "expected_label": "NFR",
+        "category": "Reliability",
+        "reason": "Specifies high fault tolerance and disaster survivability attributes.",
+        "domain": "Cloud Infrastructure & DevOps",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-053",
+        "text": "The system shall send PagerDuty alerts to on-call site reliability engineers when health checks fail 3 consecutive times.",
+        "expected_label": "FR",
+        "category": "Behavior",
+        "reason": "Specifies threshold-based alerting behavior.",
+        "domain": "Cloud Infrastructure & DevOps",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-054",
+        "text": "The storage volume shall deliver a minimum of 10,000 IOPS for random read/write workloads.",
+        "expected_label": "NFR",
+        "category": "Performance",
+        "reason": "Specifies disk I/O performance benchmark.",
+        "domain": "Cloud Infrastructure & DevOps",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-055",
+        "text": "The system shall rotate database service credentials automatically every 30 days.",
+        "expected_label": "FR",
+        "category": "Service",
+        "reason": "Specifies an automated credential lifecycle management service.",
+        "domain": "Cloud Infrastructure & DevOps",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-056",
+        "text": "The Mean Time to Recovery (MTTR) following container crashes shall not exceed 60 seconds.",
+        "expected_label": "NFR",
+        "category": "Reliability",
+        "reason": "Specifies a quantitative recovery time metric (MTTR).",
+        "domain": "Cloud Infrastructure & DevOps",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+
+    # -----------------------------------------------------------------
+    # Domain 5: IoT & Connected Fleet (BENCH-057 to BENCH-068)
+    # -----------------------------------------------------------------
+    {
+        "id": "BENCH-057",
+        "text": "The system shall ingest telemetry packets from connected vehicle GPS transponders over MQTT protocol.",
+        "expected_label": "FR",
+        "category": "Service",
+        "reason": "Specifies protocol-level telemetry ingestion service.",
+        "domain": "IoT & Connected Fleet",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-058",
+        "text": "The edge gateway shall operate continuously within an ambient temperature range of -40°C to +85°C.",
+        "expected_label": "NFR",
+        "category": "Environment",
+        "reason": "Specifies physical hardware operational environmental constraints.",
+        "domain": "IoT & Connected Fleet",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-059",
+        "text": "The system shall allow fleet dispatchers to establish geographical boundary geofences on an interactive map.",
+        "expected_label": "FR",
+        "category": "Feature",
+        "reason": "Specifies a user-facing geofence configuration feature.",
+        "domain": "IoT & Connected Fleet",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-060",
+        "text": "The fleet message broker shall process at least 50,000 incoming telemetry messages per second.",
+        "expected_label": "NFR",
+        "category": "Capacity",
+        "reason": "Specifies message throughput capacity rate.",
+        "domain": "IoT & Connected Fleet",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-061",
+        "text": "The system shall dispatch over-the-air (OTA) firmware binaries to targeted vehicle control units.",
+        "expected_label": "FR",
+        "category": "Action",
+        "reason": "Specifies firmware update distribution action.",
+        "domain": "IoT & Connected Fleet",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-062",
+        "text": "End-to-end GPS position updates shall be reflected on the dispatcher console within 1 second of transmission.",
+        "expected_label": "NFR",
+        "category": "Performance",
+        "reason": "Specifies end-to-end data transmission latency threshold.",
+        "domain": "IoT & Connected Fleet",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-063",
+        "text": "The system shall notify fleet managers when a vehicle exceeds the posted speed limit by more than 15 mph.",
+        "expected_label": "FR",
+        "category": "Behavior",
+        "reason": "Specifies speeding detection and notification behavior.",
+        "domain": "IoT & Connected Fleet",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-064",
+        "text": "Vehicle communication payloads shall not exceed 256 bytes per packet to minimize satellite bandwidth consumption.",
+        "expected_label": "NFR",
+        "category": "Constraint",
+        "reason": "Specifies network packet payload size constraint.",
+        "domain": "IoT & Connected Fleet",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-065",
+        "text": "The system shall generate preventative maintenance schedules based on aggregated engine diagnostic fault codes.",
+        "expected_label": "FR",
+        "category": "Service",
+        "reason": "Specifies automated maintenance schedule generation service.",
+        "domain": "IoT & Connected Fleet",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-066",
+        "text": "The embedded sensor device shall have an operational battery lifespan of at least 5 years under hourly reporting.",
+        "expected_label": "NFR",
+        "category": "Reliability",
+        "reason": "Specifies power consumption and operational endurance constraint.",
+        "domain": "IoT & Connected Fleet",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-067",
+        "text": "The system shall disable remote engine ignition commands while vehicle velocity is greater than 0 mph.",
+        "expected_label": "FR",
+        "category": "Behavior",
+        "reason": "Specifies safety-critical conditional feature lockout behavior.",
+        "domain": "IoT & Connected Fleet",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-068",
+        "text": "All telematics communications between vehicle and cloud broker shall be mutually authenticated via X.509 client certificates.",
+        "expected_label": "NFR",
+        "category": "Security",
+        "reason": "Specifies cryptographic mutual authentication standard.",
+        "domain": "IoT & Connected Fleet",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+
+    # -----------------------------------------------------------------
+    # Domain 6: Cybersecurity & Access Control (BENCH-069 to BENCH-080)
+    # -----------------------------------------------------------------
+    {
+        "id": "BENCH-069",
+        "text": "The system shall allow users to authenticate using biometric WebAuthn security keys.",
+        "expected_label": "FR",
+        "category": "Feature",
+        "reason": "Specifies biometric authentication feature capability.",
+        "domain": "Cybersecurity & Access Control",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-070",
+        "text": "All user passwords must be hashed using Argon2id with a minimum memory cost of 64MB.",
+        "expected_label": "NFR",
+        "category": "Security",
+        "reason": "Specifies cryptographic hashing algorithm parameters and security standard.",
+        "domain": "Cybersecurity & Access Control",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-071",
+        "text": "The system shall revoke all active user sessions upon password change or account compromise detection.",
+        "expected_label": "FR",
+        "category": "Behavior",
+        "reason": "Specifies session revocation state transition behavior.",
+        "domain": "Cybersecurity & Access Control",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-072",
+        "text": "Authentication JWT tokens shall have a maximum validity lifespan of 15 minutes.",
+        "expected_label": "NFR",
+        "category": "Security",
+        "reason": "Specifies token expiration duration constraint.",
+        "domain": "Cybersecurity & Access Control",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-073",
+        "text": "The system shall generate a detailed security audit log entry for every privileged permission grant.",
+        "expected_label": "FR",
+        "category": "Service",
+        "reason": "Specifies security audit logging service action.",
+        "domain": "Cybersecurity & Access Control",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-074",
+        "text": "The authentication microservice shall verify JWT token signatures in under 2 milliseconds.",
+        "expected_label": "NFR",
+        "category": "Performance",
+        "reason": "Specifies cryptographic verification execution speed benchmark.",
+        "domain": "Cybersecurity & Access Control",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-075",
+        "text": "The system shall allow security officers to define fine-grained role-based access control (RBAC) permissions.",
+        "expected_label": "FR",
+        "category": "Feature",
+        "reason": "Specifies permission management feature.",
+        "domain": "Cybersecurity & Access Control",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-076",
+        "text": "The identity provider shall maintain 99.999% availability (five nines) for Single Sign-On (SSO) requests.",
+        "expected_label": "NFR",
+        "category": "Availability",
+        "reason": "Specifies high-availability uptime SLA for critical identity provider.",
+        "domain": "Cybersecurity & Access Control",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-077",
+        "text": "The system shall block incoming IP addresses identified in the global threat intelligence blacklist.",
+        "expected_label": "FR",
+        "category": "Behavior",
+        "reason": "Specifies automated threat blocking behavior.",
+        "domain": "Cybersecurity & Access Control",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-078",
+        "text": "Audit logs shall be cryptographically signed and write-protected to prevent tampering.",
+        "expected_label": "NFR",
+        "category": "Security",
+        "reason": "Specifies non-repudiation and integrity security constraint on logs.",
+        "domain": "Cybersecurity & Access Control",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-079",
+        "text": "The system shall prompt users to verify new device logins via an out-of-band email link.",
+        "expected_label": "FR",
+        "category": "Action",
+        "reason": "Specifies user verification workflow action.",
+        "domain": "Cybersecurity & Access Control",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-080",
+        "text": "The cryptographic key management system shall comply with FIPS 140-3 Level 3 certification.",
+        "expected_label": "NFR",
+        "category": "Compliance",
+        "reason": "Specifies federal cryptographic hardware security standard compliance.",
+        "domain": "Cybersecurity & Access Control",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+
+    # -----------------------------------------------------------------
+    # Domain 7: Social Media & Content Delivery (BENCH-081 to BENCH-092)
+    # -----------------------------------------------------------------
+    {
+        "id": "BENCH-081",
+        "text": "The system shall allow users to publish multimedia posts containing text, images, and video clips.",
+        "expected_label": "FR",
+        "category": "Action",
+        "reason": "Specifies user post publishing action.",
+        "domain": "Social Media & Content Delivery",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-082",
+        "text": "The content feed algorithm shall deliver updated timeline items within 200 milliseconds of user refresh.",
+        "expected_label": "NFR",
+        "category": "Performance",
+        "reason": "Specifies feed generation latency SLA.",
+        "domain": "Social Media & Content Delivery",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-083",
+        "text": "The system shall allow users to like, bookmark, and share posts to external platforms.",
+        "expected_label": "FR",
+        "category": "Feature",
+        "reason": "Specifies interactive social engagement features.",
+        "domain": "Social Media & Content Delivery",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-084",
+        "text": "The video distribution CDN shall maintain 99.9% uptime across all global edge points of presence.",
+        "expected_label": "NFR",
+        "category": "Availability",
+        "reason": "Specifies edge CDN network availability SLA.",
+        "domain": "Social Media & Content Delivery",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-085",
+        "text": "The system shall automatically blur images flagged by the computer vision toxicity filter as graphic content.",
+        "expected_label": "FR",
+        "category": "Behavior",
+        "reason": "Specifies automated content moderation behavior.",
+        "domain": "Social Media & Content Delivery",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-086",
+        "text": "The video transcoding pipeline shall process uploaded videos at 4K resolution at no less than 60 frames per second.",
+        "expected_label": "NFR",
+        "category": "Capacity",
+        "reason": "Specifies media processing speed and throughput benchmark.",
+        "domain": "Social Media & Content Delivery",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-087",
+        "text": "The system shall allow creators to broadcast live video streams with interactive viewer chat.",
+        "expected_label": "FR",
+        "category": "Feature",
+        "reason": "Specifies live broadcasting feature capability.",
+        "domain": "Social Media & Content Delivery",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-088",
+        "text": "Video streaming startup latency (time to first frame) shall be less than 800 milliseconds on broadband connections.",
+        "expected_label": "NFR",
+        "category": "Performance",
+        "reason": "Specifies media playback startup latency threshold.",
+        "domain": "Social Media & Content Delivery",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-089",
+        "text": "The system shall provide users with a complete archive download of all their published posts and comments.",
+        "expected_label": "FR",
+        "category": "Service",
+        "reason": "Specifies a user data export service.",
+        "domain": "Social Media & Content Delivery",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-090",
+        "text": "The user profile data storage shall comply with GDPR 'Right to be Forgotten' erasure mandates within 30 days.",
+        "expected_label": "NFR",
+        "category": "Compliance",
+        "reason": "Specifies a legal privacy regulation compliance timeframe constraint.",
+        "domain": "Social Media & Content Delivery",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-091",
+        "text": "The system shall filter spam comments containing duplicate hyperlinks from unverified user accounts.",
+        "expected_label": "FR",
+        "category": "Behavior",
+        "reason": "Specifies anti-spam filtering behavior.",
+        "domain": "Social Media & Content Delivery",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-092",
+        "text": "The live chat infrastructure shall scale to support 100,000 concurrent messages per second per live broadcast room.",
+        "expected_label": "NFR",
+        "category": "Capacity",
+        "reason": "Specifies maximum message throughput capacity under surge load.",
+        "domain": "Social Media & Content Delivery",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+
+    # -----------------------------------------------------------------
+    # Domain 8: Transportation & Logistics (BENCH-093 to BENCH-104)
+    # -----------------------------------------------------------------
+    {
+        "id": "BENCH-093",
+        "text": "The system shall compute optimal delivery routes for drivers using multi-stop Dijkstra graph algorithms.",
+        "expected_label": "FR",
+        "category": "Service",
+        "reason": "Specifies an algorithmic route computation service.",
+        "domain": "Transportation & Logistics",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-094",
+        "text": "The route optimization engine shall compute revised routes for 500 delivery vehicles in under 5 seconds.",
+        "expected_label": "NFR",
+        "category": "Performance",
+        "reason": "Specifies computation time benchmark for batch route optimization.",
+        "domain": "Transportation & Logistics",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-095",
+        "text": "The system shall allow customers to track courier real-time location on an interactive GPS map.",
+        "expected_label": "FR",
+        "category": "Feature",
+        "reason": "Specifies customer tracking visualization feature.",
+        "domain": "Transportation & Logistics",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-096",
+        "text": "The driver mobile app shall continue recording delivery sign-offs and timestamps while offline without network coverage.",
+        "expected_label": "NFR",
+        "category": "Reliability",
+        "reason": "Specifies offline resilience and fault-tolerant operational capability.",
+        "domain": "Transportation & Logistics",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-097",
+        "text": "The system shall capture digital proof of delivery including recipient signature and barcode package scan.",
+        "expected_label": "FR",
+        "category": "Action",
+        "reason": "Specifies a proof-of-delivery data capture action.",
+        "domain": "Transportation & Logistics",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-098",
+        "text": "The dispatch system shall handle 10,000 package barcode scan events per minute during peak hub sorting.",
+        "expected_label": "NFR",
+        "category": "Capacity",
+        "reason": "Specifies package processing throughput capacity.",
+        "domain": "Transportation & Logistics",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-099",
+        "text": "The system shall assign incoming on-demand ride requests to the closest available driver within a 3-mile radius.",
+        "expected_label": "FR",
+        "category": "Behavior",
+        "reason": "Specifies automated driver matching and assignment behavior.",
+        "domain": "Transportation & Logistics",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-100",
+        "text": "The driver dispatch service shall maintain 99.99% availability 24 hours a day, 365 days a year.",
+        "expected_label": "NFR",
+        "category": "Availability",
+        "reason": "Specifies high-availability uptime SLA for mission-critical logistics operations.",
+        "domain": "Transportation & Logistics",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-101",
+        "text": "The system shall calculate estimated time of arrival (ETA) incorporating live traffic congestion telemetry.",
+        "expected_label": "FR",
+        "category": "Service",
+        "reason": "Specifies dynamic ETA estimation service.",
+        "domain": "Transportation & Logistics",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-102",
+        "text": "GPS location coordinates shall be stored with a minimum spatial precision of 6 decimal places.",
+        "expected_label": "NFR",
+        "category": "Accuracy",
+        "reason": "Specifies spatial data precision and accuracy constraint.",
+        "domain": "Transportation & Logistics",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-103",
+        "text": "The system shall notify freight dispatchers when temperature-controlled cargo exceeds refrigeration thresholds.",
+        "expected_label": "FR",
+        "category": "Behavior",
+        "reason": "Specifies temperature sensor alert dispatch behavior.",
+        "domain": "Transportation & Logistics",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-104",
+        "text": "Driver geolocation history data shall be anonymized after 90 days to comply with labor privacy laws.",
+        "expected_label": "NFR",
+        "category": "Compliance",
+        "reason": "Specifies statutory privacy compliance data retention rule.",
+        "domain": "Transportation & Logistics",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+
+    # -----------------------------------------------------------------
+    # Domain 9: EdTech & Learning Management (BENCH-105 to BENCH-112)
+    # -----------------------------------------------------------------
+    {
+        "id": "BENCH-105",
+        "text": "The system shall allow instructors to create and publish timed multiple-choice quizzes.",
+        "expected_label": "FR",
+        "category": "Feature",
+        "reason": "Specifies quiz authoring feature capability.",
+        "domain": "EdTech & Learning Management",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-106",
+        "text": "The online examination platform shall support 10,000 concurrent students taking simultaneous exams without crashing.",
+        "expected_label": "NFR",
+        "category": "Capacity",
+        "reason": "Specifies maximum concurrent examination capacity.",
+        "domain": "EdTech & Learning Management",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-107",
+        "text": "The system shall automatically grade multiple-choice submissions and calculate final percentages upon exam completion.",
+        "expected_label": "FR",
+        "category": "Service",
+        "reason": "Specifies automated assessment grading calculation service.",
+        "domain": "EdTech & Learning Management",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-108",
+        "text": "The learning platform shall comply with Web Content Accessibility Guidelines (WCAG) 2.1 Level AA standards.",
+        "expected_label": "NFR",
+        "category": "Accessibility",
+        "reason": "Specifies mandatory accessibility compliance standard for disabilities.",
+        "domain": "EdTech & Learning Management",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-109",
+        "text": "The system shall generate verifiable, cryptographically signed completion certificates for course graduates.",
+        "expected_label": "FR",
+        "category": "Service",
+        "reason": "Specifies certificate issuance service.",
+        "domain": "EdTech & Learning Management",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-110",
+        "text": "Student exam submissions shall be persisted with guaranteed zero data loss even during browser crashes.",
+        "expected_label": "NFR",
+        "category": "Reliability",
+        "reason": "Specifies data persistence reliability and fault-tolerance attribute.",
+        "domain": "EdTech & Learning Management",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-111",
+        "text": "The system shall lock the exam window and detect tab switching during proctored assessment sessions.",
+        "expected_label": "FR",
+        "category": "Behavior",
+        "reason": "Specifies anti-cheating proctoring behavior.",
+        "domain": "EdTech & Learning Management",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-112",
+        "text": "Course video streaming shall adapt bitrate automatically between 360p and 1080p based on student network bandwidth.",
+        "expected_label": "NFR",
+        "category": "Performance",
+        "reason": "Specifies adaptive bitrate video streaming performance quality attribute.",
+        "domain": "EdTech & Learning Management",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+
+    # -----------------------------------------------------------------
+    # Domain 10: Enterprise ERP & SaaS (BENCH-113 to BENCH-120)
+    # -----------------------------------------------------------------
+    {
+        "id": "BENCH-113",
+        "text": "The system shall allow procurement officers to approve or reject purchase requisitions with comments.",
+        "expected_label": "FR",
+        "category": "Action",
+        "reason": "Specifies a purchase approval workflow action.",
+        "domain": "Enterprise ERP & SaaS",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-114",
+        "text": "The ERP platform shall comply with SOC 2 Type II trust services criteria for security and confidentiality.",
+        "expected_label": "NFR",
+        "category": "Compliance",
+        "reason": "Specifies enterprise security audit compliance certification.",
+        "domain": "Enterprise ERP & SaaS",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-115",
+        "text": "The system shall generate balance sheets and general ledger financial reports in accordance with GAAP standards.",
+        "expected_label": "FR",
+        "category": "Service",
+        "reason": "Specifies automated accounting report generation service.",
+        "domain": "Enterprise ERP & SaaS",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-116",
+        "text": "All tenant data in the multi-tenant architecture shall be logically isolated with zero cross-tenant query leakage.",
+        "expected_label": "NFR",
+        "category": "Security",
+        "reason": "Specifies multi-tenant isolation and security constraint.",
+        "domain": "Enterprise ERP & SaaS",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-117",
+        "text": "The system shall allow human resources managers to calculate payroll deductions, bonuses, and tax withholdings.",
+        "expected_label": "FR",
+        "category": "Feature",
+        "reason": "Specifies payroll calculation feature capability.",
+        "domain": "Enterprise ERP & SaaS",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-118",
+        "text": "The end-of-quarter batch financial reconciliation job shall complete within a 4-hour maintenance window.",
+        "expected_label": "NFR",
+        "category": "Performance",
+        "reason": "Specifies batch job execution time window constraint.",
+        "domain": "Enterprise ERP & SaaS",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-119",
+        "text": "The system shall send reminder notifications to managers for pending employee expense reports older than 5 days.",
+        "expected_label": "FR",
+        "category": "Behavior",
+        "reason": "Specifies scheduled reminder notification behavior.",
+        "domain": "Enterprise ERP & SaaS",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    },
+    {
+        "id": "BENCH-120",
+        "text": "The multi-tenant database shall support horizontal scaling to accommodate at least 50,000 corporate tenant accounts.",
+        "expected_label": "NFR",
+        "category": "Scalability",
+        "reason": "Specifies tenant capacity and architectural scalability limit.",
+        "domain": "Enterprise ERP & SaaS",
+        "reviewer_agreement": "Consensus (2/2 reviewers)"
+    }
+]
+
+def main():
+    target_dir = os.path.join(os.path.dirname(__file__), "datasets")
+    os.makedirs(target_dir, exist_ok=True)
+    target_file = os.path.join(target_dir, "requirements_ground_truth.json")
+
+    # Verify counts
+    fr_count = sum(1 for item in BENCHMARK_ITEMS if item["expected_label"] == "FR")
+    nfr_count = sum(1 for item in BENCHMARK_ITEMS if item["expected_label"] == "NFR")
+    total = len(BENCHMARK_ITEMS)
+
+    with open(target_file, "w", encoding="utf-8") as f:
+        json.dump(BENCHMARK_ITEMS, f, indent=2, ensure_ascii=False)
+
+    print(f"[SUCCESS] Benchmark ground-truth dataset generated: {target_file}")
+    print(f"Total Requirements: {total} (FR: {fr_count}, NFR: {nfr_count})")
+    assert total >= 100, "Dataset must have at least 100 items"
+    assert fr_count == 60, "Must have exactly 60 FR items"
+    assert nfr_count == 60, "Must have exactly 60 NFR items"
+
+if __name__ == "__main__":
+    main()

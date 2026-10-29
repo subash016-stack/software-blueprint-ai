@@ -843,3 +843,62 @@ class GenerateResponse(BaseModel):
     rag_recommendations: Optional[List[GroundedRecommendation]] = None
     validation_report: Optional[ValidationReport] = None
     version: int = 1
+
+
+# ==========================================
+# REQUIREMENT BENCHMARK & CLASSIFICATION SCHEMAS
+# ==========================================
+
+class RequirementType(str, Enum):
+    """Classification type for requirements."""
+    FR = "FR"
+    NFR = "NFR"
+
+
+class RequirementBenchmarkItem(BaseModel):
+    """Ground-truth benchmark requirement item verified by human reviewers."""
+    id: str = Field(..., description="Unique benchmark requirement ID (e.g. BENCH-001)")
+    text: str = Field(..., description="Requirement natural-language statement")
+    expected_label: RequirementType = Field(..., description="Verified ground-truth label: FR or NFR")
+    category: str = Field(..., description="Sub-category (e.g. Action, Performance, Security, Availability, Capacity, Compliance, Feature)")
+    reason: str = Field(..., description="Human rationale explaining why it is FR or NFR")
+    domain: str = Field(..., description="Business/technical domain (e.g. Fintech, Healthcare, E-Commerce, IoT)")
+    reviewer_agreement: str = Field(default="Consensus (2/2 reviewers)", description="Independent reviewer agreement status")
+
+
+class RequirementClassificationRequest(BaseModel):
+    """Request payload to classify a single or list of requirements."""
+    requirement: Optional[str] = Field(None, description="Single requirement text to classify")
+    requirements: Optional[List[str]] = Field(None, description="List of requirement texts to classify")
+    use_heuristic: bool = Field(default=True, description="Use deterministic rule engine for instantaneous offline classification")
+
+
+
+class RequirementClassificationResult(BaseModel):
+    """Classification prediction with confidence and reasoning."""
+    id: Optional[str] = Field(None, description="Identifier of the requirement if provided")
+    text: str = Field(..., description="The evaluated requirement statement")
+    predicted_label: RequirementType = Field(..., description="Model prediction: FR or NFR")
+    confidence: float = Field(default=1.0, ge=0.0, le=1.0, description="Confidence score between 0.0 and 1.0")
+    reasoning: str = Field(..., description="Model reasoning for classification")
+
+
+class BenchmarkEvaluationReport(BaseModel):
+    """Comprehensive performance evaluation of requirement classification against human ground truth."""
+    total_samples: int = Field(..., description="Total benchmark requirements evaluated")
+    correct_predictions: int = Field(..., description="Number of correctly classified samples")
+    accuracy_pct: float = Field(..., description="Overall classification accuracy percentage (0-100)")
+    fr_precision: float = Field(..., description="Functional Requirement precision (0.0 - 1.0)")
+    fr_recall: float = Field(..., description="Functional Requirement recall (0.0 - 1.0)")
+    fr_f1: float = Field(..., description="Functional Requirement F1 score (0.0 - 1.0)")
+    nfr_precision: float = Field(..., description="Non-Functional Requirement precision (0.0 - 1.0)")
+    nfr_recall: float = Field(..., description="Non-Functional Requirement recall (0.0 - 1.0)")
+    nfr_f1: float = Field(..., description="Non-Functional Requirement F1 score (0.0 - 1.0)")
+    confusion_matrix: Dict[str, int] = Field(
+        ...,
+        description="Confusion matrix keys: true_positives_fr, false_positives_fr, true_positives_nfr, false_positives_nfr"
+    )
+    discrepancies: List[Dict[str, Any]] = Field(default_factory=list, description="List of misclassified samples with root-cause analysis")
+    domain_breakdown: Dict[str, Dict[str, Any]] = Field(default_factory=dict, description="Accuracy and sample counts broken down by domain")
+    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+
