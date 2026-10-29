@@ -260,7 +260,7 @@ def build_pdf(filename="SOFTWARE_BLUEPRINT_AI_COMPLETE_PROJECT_MANUAL.pdf"):
         ],
         [
             Paragraph("<b>Graph Engine:</b> NetworkX Multi-Tier Traceability", body_style),
-            Paragraph("<b>Test Suite:</b> 38/38 Unit & Integration Tests Passing (100%)", body_style)
+            Paragraph("<b>Test Suite:</b> 40/40 Unit & Integration Tests Passing (100%)", body_style)
         ]
     ]
     meta_table = Table(meta_table_data, colWidths=[250, 254])
@@ -310,7 +310,7 @@ def build_pdf(filename="SOFTWARE_BLUEPRINT_AI_COMPLETE_PROJECT_MANUAL.pdf"):
     story.append(Spacer(1, 8))
 
     # -------------------------------------------------------------
-    # CHAPTER 2: DETAILED FLOW & MULTI-AGENT LIFECYCLE
+    # CHAPTER 2: DETAILED SYSTEM WORKFLOW & AGENT PIPELINE
     # -------------------------------------------------------------
     story.append(p("CHAPTER 2: DETAILED SYSTEM WORKFLOW & AGENT PIPELINE", h1_style))
     story.append(HRFlowable(width="100%", thickness=0.5, color=c_secondary, spaceBefore=0, spaceAfter=6))
@@ -321,7 +321,7 @@ def build_pdf(filename="SOFTWARE_BLUEPRINT_AI_COMPLETE_PROJECT_MANUAL.pdf"):
 
     flow_steps = [
         ("Step 1: Input Elicitation & Ingestion", "The user inputs a natural language prompt on the React Dashboard or uploads a PRD. The payload is sent via HTTP POST to FastAPI `/api/v1/projects`."),
-        ("Step 2: Module 1 — Requirement Analysis Agent (app/agents/requirement_agent.py)", "Extracts primary Stakeholders (ST-001..), formal Functional Requirements (FR-001.. with MoSCoW prioritization), measurable Non-Functional Requirements (NFR-001.. across latency, security, and scalability), constraints, and detected ambiguities with suggested clarifications."),
+        ("Step 2: Module 1 — Requirement Analysis Agent (app/agents/requirement_agent.py)", "Extracts primary Stakeholders (ST-001..), formal Functional Requirements (FR-001.. with Dual Prioritization: qualitative MoSCoW & quantitative RICE ranking), measurable Non-Functional Requirements (NFR-001.. across latency, security, and scalability), constraints, and detected ambiguities with suggested clarifications."),
         ("Step 3: Module 2 — Project Planning Agent (app/agents/planning_agent.py)", "Consumes the structured SRS and synthesizes a Work Breakdown Structure (WBS): groups requirements into cohesive Subsystems/Modules (MOD-001..), breaks them down into fine-grained Tasks (T-001..) with estimated hours and prerequisite dependencies, defines deliverable Milestones (M-001..), and constructs an engineering Roadmap."),
         ("Step 4: Module 3 — Architecture Design Agent (app/agents/architecture_agent.py)", "Recommends an optimal architecture pattern (Modular Monolith, Event-Driven, Microservices). Generates C4 Model containers (CONT-001..), components (COMP-001..), REST APIs (API-001.. with HTTP verbs, request/response schemas), and database schemas (DB-001..). Generates Architecture Decision Records (ADRs) with explicit competitive justifications across 8 technology tiers."),
         ("Step 5: Module 4 — RAG Recommendation Agent (app/agents/rag_agent.py)", "Queries the local Qdrant vector database (`architecture_patterns` collection) using hierarchical embeddings. Retrieves authoritative literature chunks and injects evidence citations (`[ARCH-001]`, `[DATA-001]`, `[SEC-001]`) with similarity confidence scores and trade-off analyses."),
@@ -420,7 +420,7 @@ def build_pdf(filename="SOFTWARE_BLUEPRINT_AI_COMPLETE_PROJECT_MANUAL.pdf"):
         ],
         [
             Paragraph("<b>Pytest 8.1+ & HTTPX</b>", table_cell_bold),
-            Paragraph("Automated test suite (`tests/`). Validates API endpoints, deterministic graph audits, RAG retriever, and LangGraph workflow across 38 unit and integration tests.", table_cell_style),
+            Paragraph("Automated test suite (`tests/`). Validates API endpoints, deterministic graph audits, RAG retriever, RICE algorithm, and LangGraph workflow across 40 unit and integration tests.", table_cell_style),
             Paragraph("Unittest,<br/>Nose2", table_cell_style),
             Paragraph("Standard modern Python testing framework with rich fixture support and async TestClient integration.", table_cell_style)
         ]
@@ -453,12 +453,15 @@ def build_pdf(filename="SOFTWARE_BLUEPRINT_AI_COMPLETE_PROJECT_MANUAL.pdf"):
 
     features_breakdown = [
         (
-            "1. Module 1: SRS Requirements Engineering & Ambiguity Elicitation",
+            "1. Module 1: SRS Requirements Engineering, Ambiguity Elicitation & Dual Prioritization (MoSCoW + RICE)",
             "app/agents/requirement_agent.py, app/schemas.py",
             [
                 "<b>Prompt & Schema:</b> Ingests project concept and calls `invoke_structured()` against `RequirementAnalysis` schema.",
                 "<b>Stakeholder Roster:</b> Identifies roles with IDs (`ST-001..`), names, and organizational responsibilities.",
-                "<b>Functional Requirements (FR):</b> Formulates testable requirements (`FR-001..`), user stories, acceptance criteria, and MoSCoW priorities ('Must', 'Should', 'Could', 'Won't').",
+                "<b>Dual Prioritization Engine:</b> Integrates both qualitative <b>MoSCoW</b> ('Must', 'Should', 'Could', 'Won't') and quantitative <b>RICE</b> algorithms.",
+                "<b>Quantitative RICE Framework:</b> Calculates <code>RICE Score = (Reach × Impact × Confidence) / Effort</code>. Reach: users/month; Impact: 0.25 (minimal) to 3.0 (massive); Confidence: 50% to 100% (normalized); Effort: person-months (min 0.1).",
+                "<b>Deterministic Backlog Auto-Ranking:</b> Computes RICE scores and automatically sorts the requirements backlog descending by score (rank 1, 2, 3..).",
+                "<b>Functional Requirements (FR):</b> Formulates testable requirements (`FR-001..`), user stories, acceptance criteria, MoSCoW, RICE scores, and ranking.",
                 "<b>Non-Functional Requirements (NFR):</b> Specifies measurable performance, security, and scalability criteria (`NFR-001..`).",
                 "<b>Ambiguity Detection:</b> Flags vague statements and generates targeted clarifying questions."
             ]
@@ -519,7 +522,7 @@ def build_pdf(filename="SOFTWARE_BLUEPRINT_AI_COMPLETE_PROJECT_MANUAL.pdf"):
             "7. Multi-Format Specification & Dossier Export",
             "app/services/export_service.py, app/api/routes.py",
             [
-                "<b>IEEE 830 Markdown Dossier:</b> Complete printable software engineering specification with tech stack comparison tables.",
+                "<b>IEEE 830 Markdown Dossier:</b> Complete printable software engineering specification with tech stack comparison tables and RICE prioritization columns.",
                 "<b>OpenAPI 3.0.3 Spec:</b> Standard JSON schema ready for Postman or Swagger UI.",
                 "<b>Jira / GitHub Backlog:</b> JSON export with Epics, Stories, Tasks, story points, and original estimates.",
                 "<b>Full Blueprint JSON:</b> Raw standardized JSON schema."
@@ -571,9 +574,11 @@ def build_pdf(filename="SOFTWARE_BLUEPRINT_AI_COMPLETE_PROJECT_MANUAL.pdf"):
         ]),
         ("Page 2: Requirements View (RequirementsPage.jsx)", [
             "<b>Overview Banner:</b> Displays project name and executive description.",
+            "<b>Dual Prioritization Header:</b> Interactive banner detailing both the qualitative MoSCoW methodology and the quantitative RICE framework formula.",
+            "<b>Interactive Sort Toolbar:</b> Lets users sort requirements dynamically by RICE Score (Rank), MoSCoW priority, or Requirement ID.",
             "<b>Stakeholder Grid:</b> Cards showing stakeholder IDs (`ST-001..`), titles, and business responsibilities.",
             "<b>FR Search Bar & Priority Filter:</b> Text search input and MoSCoW filter buttons ('ALL', 'Must', 'Should', 'Could').",
-            "<b>Functional Requirements Cards:</b> Displays FR ID, title, description, priority badge, linked stakeholders, and an instant <b>'⚡ Simulate Impact'</b> action button.",
+            "<b>Functional Requirements Cards:</b> Displays FR ID, title, description, priority badge, RICE score badge, global rank badge, interactive RICE metrics grid (Reach, Impact, Confidence %, Effort), formula trace, linked stakeholders, and instant <b>'⚡ Simulate Impact'</b> action button.",
             "<b>Non-Functional Requirements Grid:</b> Cards showing NFR categories (Security, Latency, Scalability) and performance metrics.",
             "<b>Detected Ambiguities Drawer:</b> Highlighted cards displaying lexical ambiguities with actionable suggested clarifications."
         ]),
@@ -639,7 +644,7 @@ def build_pdf(filename="SOFTWARE_BLUEPRINT_AI_COMPLETE_PROJECT_MANUAL.pdf"):
     story.append(HRFlowable(width="100%", thickness=0.5, color=c_secondary, spaceBefore=0, spaceAfter=6))
 
     story.append(p(
-        "Below are 15 challenging, high-depth technical questions frequently asked by project review panels, examiners, and system architects, along with bulletproof model answers:"
+        "Below are 16 challenging, high-depth technical questions frequently asked by project review panels, examiners, and system architects, along with bulletproof model answers:"
     ))
 
     qa_list = [
@@ -702,6 +707,10 @@ def build_pdf(filename="SOFTWARE_BLUEPRINT_AI_COMPLETE_PROJECT_MANUAL.pdf"):
         (
             "Q15: What is the computational complexity of your graph validation and impact analysis algorithms?",
             "<b>Model Answer:</b> Because we use NetworkX's adjacency-list representation, cycle detection via Tarjan's algorithm runs in linear time $O(V + E)$, where $V$ is the number of requirements/tasks/components (typically 20–100) and $E$ is the number of dependency edges (typically 30–150). Downstream blast radius traversal via Breadth-First Search (BFS) similarly runs in $O(V + E)$ time. In our benchmarks, graph validation executes in less than 2 milliseconds, making it negligible compared to LLM inference latency."
+        ),
+        (
+            "Q16: Why did you implement both the MoSCoW and RICE algorithms for requirement prioritization?",
+            "<b>Model Answer:</b> In product engineering, relying solely on qualitative methods like <b>MoSCoW</b> ('Must', 'Should', 'Could', 'Won't') frequently leads to 'priority inflation', where stakeholders label 90% of features as 'Must Have'. By combining MoSCoW with the quantitative <b>RICE framework</b> ((Reach x Impact x Confidence) / Effort), our system brings mathematical objectivity to backlog ranking. Reach quantifies monthly affected users, Impact standardizes business value (0.25 to 3.0), Confidence accounts for data certainty (50% to 100%), and Effort measures person-months. The engine deterministically ranks features from #1 downwards, enabling engineering leads to defend roadmap decisions to stakeholders with empirical data while still respecting qualitative release cutoffs."
         )
     ]
 

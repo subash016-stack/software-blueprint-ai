@@ -60,8 +60,96 @@ class Stakeholder(BaseModel):
         return v
 
 
+class RICEScore(BaseModel):
+    """Quantitative RICE Framework scoring (Reach, Impact, Confidence, Effort).
+    Formula: RICE Score = (Reach * Impact * Confidence) / Effort
+    """
+    reach: float = Field(
+        default=1000.0,
+        description="How many users/events will this affect in a given timeframe (e.g., 5,000 customers per month)"
+    )
+    impact: float = Field(
+        default=2.0,
+        description="Standardized contribution scale: 3.0=Massive, 2.0=High, 1.0=Medium, 0.5=Low, 0.25=Minimal"
+    )
+    confidence: float = Field(
+        default=0.8,
+        description="Confidence in data: 1.0 (100% High), 0.8 (80% Medium), 0.5 (50% Low/moonshot)"
+    )
+    effort: float = Field(
+        default=1.0,
+        description="Time required from product, design, and engineering in person-months or team-weeks (min 0.25)"
+    )
+    score: float = Field(
+        default=0.0,
+        description="Computed RICE score: (Reach * Impact * Confidence) / Effort"
+    )
+    rank: Optional[int] = Field(
+        default=None,
+        description="Objective rank of this feature in the requirements backlog based on RICE score (1 = highest priority)"
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def handle_inputs_and_compute(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            try:
+                reach = float(data.get("reach", 1000.0) if data.get("reach") is not None else 1000.0)
+            except (ValueError, TypeError):
+                reach = 1000.0
+            try:
+                impact = float(data.get("impact", 2.0) if data.get("impact") is not None else 2.0)
+            except (ValueError, TypeError):
+                impact = 2.0
+            try:
+                confidence = float(data.get("confidence", 0.8) if data.get("confidence") is not None else 0.8)
+            except (ValueError, TypeError):
+                confidence = 0.8
+            try:
+                effort = float(data.get("effort", 1.0) if data.get("effort") is not None else 1.0)
+            except (ValueError, TypeError):
+                effort = 1.0
+
+            # Normalize confidence: if > 1.0 (e.g. 80% passed as 80 or 100), convert to 0.8 or 1.0
+            if confidence > 1.0:
+                confidence = confidence / 100.0
+            confidence = max(0.1, min(1.0, confidence))
+
+            # Prevent zero or negative effort
+            eff = max(0.1, effort)
+            computed_score = round((reach * impact * confidence) / eff, 2)
+
+            data["reach"] = reach
+            data["impact"] = impact
+            data["confidence"] = confidence
+            data["effort"] = effort
+            data["score"] = computed_score
+        return data
+
+    @property
+    def impact_label(self) -> str:
+        if self.impact >= 3.0:
+            return "Massive (3.0)"
+        elif self.impact >= 2.0:
+            return "High (2.0)"
+        elif self.impact >= 1.0:
+            return "Medium (1.0)"
+        elif self.impact >= 0.5:
+            return "Low (0.5)"
+        return "Minimal (0.25)"
+
+    @property
+    def confidence_label(self) -> str:
+        pct = int(round(self.confidence * 100))
+        if self.confidence >= 0.95:
+            return f"High ({pct}%)"
+        elif self.confidence >= 0.75:
+            return f"Medium ({pct}%)"
+        return f"Low / Moonshot ({pct}%)"
+
+
 class FunctionalRequirement(BaseModel):
-    """Specific, testable functional requirement."""
+    """Specific, testable functional requirement with MoSCoW priority and RICE quantitative scoring."""
     id: str = Field(
         ...,
         description="Unique identifier for the functional requirement (e.g., FR-001)",
@@ -79,6 +167,10 @@ class FunctionalRequirement(BaseModel):
     priority: Priority = Field(
         default=Priority.MUST,
         description="MoSCoW priority (Must, Should, Could, Won't)"
+    )
+    rice: Optional[RICEScore] = Field(
+        default=None,
+        description="Quantitative RICE Framework scoring (Reach, Impact, Confidence, Effort)"
     )
     stakeholders: List[str] = Field(
         default_factory=list,
@@ -190,6 +282,44 @@ class RequirementAnalysis(BaseModel):
         default_factory=list,
         description="Explicit assumptions made to establish a baseline design"
     )
+
+    def populate_and_rank_rice_scores(self) -> "RequirementAnalysis":
+        """Deterministic helper to ensure every functional requirement has a computed RICE score and objective backlog rank."""
+        if not self.functional_requirements:
+            return self
+
+        # Default parameters mapping from MoSCoW if rice is missing
+        moscow_defaults = {
+            Priority.MUST: {"reach": 5000.0, "impact": 3.0, "confidence": 0.9, "effort": 1.5},
+            Priority.SHOULD: {"reach": 2500.0, "impact": 2.0, "confidence": 0.8, "effort": 1.5},
+            Priority.COULD: {"reach": 1000.0, "impact": 1.0, "confidence": 0.7, "effort": 1.0},
+            Priority.WONT: {"reach": 300.0, "impact": 0.5, "confidence": 0.5, "effort": 2.0},
+        }
+
+        for idx, fr in enumerate(self.functional_requirements):
+            if fr.rice is None:
+                p_key = fr.priority if isinstance(fr.priority, Priority) else Priority(fr.priority)
+                defs = moscow_defaults.get(p_key, {"reach": 2000.0, "impact": 2.0, "confidence": 0.8, "effort": 1.5})
+                # Slightly vary reach by index so scores don't tie identically
+                reach_val = round(defs["reach"] * (1.0 - (idx * 0.04)), 0)
+                fr.rice = RICEScore(
+                    reach=reach_val,
+                    impact=defs["impact"],
+                    confidence=defs["confidence"],
+                    effort=defs["effort"]
+                )
+
+        # Rank requirements in descending order of RICE score
+        sorted_frs = sorted(self.functional_requirements, key=lambda f: f.rice.score if f.rice else 0.0, reverse=True)
+        for rank_idx, s_fr in enumerate(sorted_frs, start=1):
+            if s_fr.rice:
+                s_fr.rice.rank = rank_idx
+
+        return self
+
+    @model_validator(mode="after")
+    def auto_populate_rice(self) -> "RequirementAnalysis":
+        return self.populate_and_rank_rice_scores()
 
     def compute_hash(self) -> str:
         """Compute deterministic SHA-256 fingerprint of the requirements."""
@@ -642,6 +772,7 @@ class RequirementChangeRequest(BaseModel):
     new_title: Optional[str] = None
     new_description: str = Field(..., description="Updated requirement statement")
     new_priority: Optional[Priority] = None
+    new_rice: Optional[RICEScore] = None
 
 
 # ==========================================

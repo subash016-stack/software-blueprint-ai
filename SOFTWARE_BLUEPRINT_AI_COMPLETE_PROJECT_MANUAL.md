@@ -117,12 +117,17 @@ Software Blueprint AI operates as an autonomous sequential pipeline orchestrated
 
 ---
 
-## CHAPTER 4: COMPREHENSIVE FEATURE IMPLEMENTATION GUIDE
-
-### 4.1 Module 1: SRS Requirements Engineering & Ambiguity Elicitation
+### 4.1 Module 1: SRS Requirements Engineering & Dual Prioritization (MoSCoW + RICE)
 - **Source Files:** `app/agents/requirement_agent.py`, `app/schemas.py`, `app/api/routes.py`
 - **Stakeholder Roster:** Generates structured stakeholder profiles (`ST-001..`) with role names and organizational responsibilities.
-- **Functional Requirements (FR):** Synthesizes testable specifications (`FR-001..`) with Given/When/Then acceptance criteria and MoSCoW priorities ('Must', 'Should', 'Could', 'Won't').
+- **Dual Prioritization Engine (Qualitative MoSCoW & Quantitative RICE):**
+  - **MoSCoW Prioritization:** Classifies requirements into contract scope tiers ('Must', 'Should', 'Could', 'Won't').
+  - **RICE Algorithm:** Computes mathematically objective backlog ranking via $\text{RICE Score} = \frac{\text{Reach} \times \text{Impact} \times \text{Confidence}}{\text{Effort}}$.
+    - *Reach*: Target users or events affected per timeframe (e.g., 5,000 customers/month).
+    - *Impact*: Contribution scale: 3.0 (Massive), 2.0 (High), 1.0 (Medium), 0.5 (Low), 0.25 (Minimal).
+    - *Confidence*: Estimation certainty ratio: 100% (High), 80% (Medium), 50% (Low/Moonshot).
+    - *Effort*: Engineering time in person-months or team-weeks (e.g., 0.5 to 3.0).
+  - Automatically sorts and assigns objective backlog ranks (`Rank #1, #2, #3...`).
 - **Non-Functional Requirements (NFR):** Formulates quantitative thresholds across latency, availability, security, and scalability (`NFR-001..`).
 - **Ambiguity Scoring & Elicitation:** Analyzes lexical vagueness and untestable claims, returning an Ambiguity Score ($0.0-1.0$) and targeted clarifying questions.
 

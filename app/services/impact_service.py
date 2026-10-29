@@ -139,6 +139,9 @@ def apply_targeted_regeneration(
         target_fr.description = change_request.new_description
         if change_request.new_priority:
             target_fr.priority = change_request.new_priority
+        if change_request.new_rice:
+            target_fr.rice = change_request.new_rice
+        updated_reqs.populate_and_rank_rice_scores()
 
     # 2. Targeted Task Refinement (Preserve unaffected tasks, selectively adjust affected ones)
     updated_plan = blueprint.project_plan.model_copy(deep=True)

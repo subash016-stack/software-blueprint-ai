@@ -27,12 +27,23 @@ def export_markdown_dossier(bp: CompleteBlueprint) -> str:
     lines.append("\n")
 
     # 2. Functional Requirements
-    lines.append("## 2. Functional Requirements Specification (IEEE 830 / ISO 29148)\n")
-    lines.append("| ID | Title | Description | Priority | Stakeholders |")
-    lines.append("|---|---|---|---|---|")
+    lines.append("## 2. Functional Requirements Specification (IEEE 830 / ISO 29148 & RICE Prioritization)\n")
+    lines.append("The platform utilizes a **Dual-Prioritization Engine** combining qualitative **MoSCoW** (Must, Should, Could, Won't) with the quantitative **RICE Framework**:")
+    lines.append(r"$$\text{RICE Score} = \frac{\text{Reach} \times \text{Impact} \times \text{Confidence}}{\text{Effort}}$$")
+    lines.append("\n| ID | Title | Description | MoSCoW | RICE Score | Rank | Reach (users/mo) | Impact | Confidence | Effort (pers-mo) | Stakeholders |")
+    lines.append("|---|---|---|---|---|---|---|---|---|---|---|")
     for fr in bp.requirements.functional_requirements:
         st_links = ", ".join(f"`{s}`" for s in fr.stakeholders)
-        lines.append(f"| `{fr.id}` | **{fr.title}** | {fr.description} | **{fr.priority.value}** | {st_links} |")
+        if fr.rice:
+            r_score = f"**{fr.rice.score:,.1f}**"
+            r_rank = f"#{fr.rice.rank}" if fr.rice.rank else "-"
+            reach_str = f"{int(fr.rice.reach):,}"
+            impact_str = f"{fr.rice.impact} ({fr.rice.impact_label.split(' ')[0]})"
+            conf_str = f"{int(round(fr.rice.confidence * 100))}%"
+            effort_str = f"{fr.rice.effort}"
+        else:
+            r_score, r_rank, reach_str, impact_str, conf_str, effort_str = "-", "-", "-", "-", "-", "-"
+        lines.append(f"| `{fr.id}` | **{fr.title}** | {fr.description} | **{fr.priority.value}** | {r_score} | {r_rank} | {reach_str} | {impact_str} | {conf_str} | {effort_str} | {st_links} |")
     lines.append("\n")
 
     # 3. Non-Functional Requirements
