@@ -125,7 +125,8 @@ def heuristic_classify_requirement(text: str, req_id: Optional[str] = None) -> R
 
 def evaluate_classifier(
     dataset: Optional[List[RequirementBenchmarkItem]] = None,
-    use_heuristic: bool = True,
+    classifier_mode: str = "ml",
+    use_heuristic: Optional[bool] = None,
     model_override: Optional[str] = None
 ) -> BenchmarkEvaluationReport:
     """
@@ -152,11 +153,22 @@ def evaluate_classifier(
             domain_stats[domain] = {"total": 0, "correct": 0}
         domain_stats[domain]["total"] += 1
 
-        if use_heuristic:
+        # Determine effective mode
+        effective_mode = classifier_mode
+        if use_heuristic is not None:
+            effective_mode = "heuristic" if use_heuristic else "llm"
+
+        if effective_mode == "heuristic":
             pred = heuristic_classify_requirement(item.text, req_id=item.id)
+        elif effective_mode == "ml":
+            from app.services.ml_classifier_service import is_ml_model_available, predict_requirement
+            if is_ml_model_available():
+                pred = predict_requirement(item.text, req_id=item.id)
+            else:
+                pred = heuristic_classify_requirement(item.text, req_id=item.id)
         else:
             from app.agents.requirement_agent import classify_requirement
-            pred = classify_requirement(item.text, req_id=item.id, model_override=model_override)
+            pred = classify_requirement(item.text, req_id=item.id, mode="llm", model_override=model_override)
 
         predicted_label = pred.predicted_label.value if hasattr(pred.predicted_label, "value") else str(pred.predicted_label)
         expected_label = item.expected_label.value if hasattr(item.expected_label, "value") else str(item.expected_label)

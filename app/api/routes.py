@@ -330,14 +330,15 @@ def get_benchmark_dataset(
 
 @router.post("/requirements/benchmark/evaluate", response_model=BenchmarkEvaluationReport, tags=["Requirement Benchmark"], summary="Evaluate Classifier Against Ground Truth")
 def run_benchmark_evaluation(
-    use_heuristic: bool = Query(True, description="If true, uses deterministic IEEE 830 rule baseline; if false, invokes local Ollama LLM")
+    classifier_mode: str = Query("ml", description="Classifier to evaluate: 'ml' (dedicated Kaggle-trained model), 'heuristic' (rule baseline), or 'llm' (Ollama LLM)"),
+    use_heuristic: Optional[bool] = Query(None, description="Legacy flag: if set, overrides classifier_mode")
 ):
     """
     Execute benchmark evaluation comparing model predictions against approved human ground-truth labels.
     Calculates Accuracy, FR/NFR Precision, Recall, F1 scores, Confusion Matrix, and Domain Breakdown.
     """
     try:
-        report = evaluate_classifier(use_heuristic=use_heuristic)
+        report = evaluate_classifier(classifier_mode=classifier_mode, use_heuristic=use_heuristic)
         return report
     except Exception as e:
         logger.error("Benchmark evaluation failed: %s", e)
@@ -351,13 +352,22 @@ def run_benchmark_evaluation(
 def classify_requirements_route(request: RequirementClassificationRequest):
     """
     Classify a single requirement or batch of requirements into Functional (FR) or Non-Functional (NFR).
+    Defaults to the dedicated Kaggle-trained ML model (< 0.2ms latency).
     """
+    effective_mode = request.mode
+    if request.use_heuristic is not None:
+        effective_mode = "heuristic" if request.use_heuristic else "llm"
+
     if request.requirement:
-        result = classify_requirement(request.requirement, use_heuristic=request.use_heuristic)
+        result = classify_requirement(request.requirement, mode=effective_mode)
         return {"results": [result.model_dump()]}
     elif request.requirements:
         batch_items = [{"text": req, "id": f"REQ-{i+1:03d}"} for i, req in enumerate(request.requirements)]
-        results = batch_classify_requirements(batch_items, use_heuristic=request.use_heuristic)
+        from app.services.ml_classifier_service import batch_predict_requirements, is_ml_model_available
+        if effective_mode == "ml" and is_ml_model_available():
+            results = batch_predict_requirements(batch_items)
+        else:
+            results = batch_classify_requirements(batch_items, use_heuristic=(effective_mode == "heuristic"))
         return {"results": [r.model_dump() for r in results]}
     else:
         raise HTTPException(

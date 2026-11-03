@@ -250,16 +250,26 @@ You must return a valid JSON object matching this schema:
 def classify_requirement(
     requirement_text: str,
     req_id: Optional[str] = None,
+    mode: str = "ml",
     use_heuristic: bool = False,
     model_override: Optional[str] = None
 ) -> RequirementClassificationResult:
-    """Classify a single requirement statement into FR or NFR using LLM with deterministic fallback."""
+    """Classify a single requirement statement into FR or NFR using dedicated ML model, LLM, or heuristics."""
     if not requirement_text or not requirement_text.strip():
         raise ValueError("Requirement statement cannot be empty.")
 
-    if use_heuristic:
+    if use_heuristic or mode == "heuristic":
         from app.benchmark.requirement_evaluator import heuristic_classify_requirement
         return heuristic_classify_requirement(requirement_text, req_id=req_id)
+
+    # 1. Primary: Dedicated Machine Learning Model (Trained on Kaggle PROMISE NFR + Benchmark)
+    if mode == "ml":
+        try:
+            from app.services.ml_classifier_service import is_ml_model_available, predict_requirement
+            if is_ml_model_available():
+                return predict_requirement(requirement_text, req_id=req_id)
+        except Exception as e:
+            logger.warning(f"ML classifier failed, falling back to LLM/heuristic: {e}")
 
     prompt_content = f"""Classify the following software requirement into either 'FR' or 'NFR':
 

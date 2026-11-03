@@ -143,3 +143,25 @@ def test_requirements_classify_endpoint_batch():
     assert len(data["results"]) == 2
     assert data["results"][0]["predicted_label"] == "FR"
     assert data["results"][1]["predicted_label"] == "NFR"
+
+
+def test_ml_classifier_service_direct():
+    """Test dedicated ML classifier service on representative FR and NFR statements."""
+    from app.services.ml_classifier_service import is_ml_model_available, predict_requirement
+    assert is_ml_model_available()
+
+    fr_res = predict_requirement("The system shall allow users to reset passwords.")
+    assert fr_res.predicted_label == RequirementType.FR
+    assert fr_res.confidence >= 0.70
+
+    nfr_res = predict_requirement("The system shall respond within 2 seconds.")
+    assert nfr_res.predicted_label == RequirementType.NFR
+    assert nfr_res.confidence >= 0.70
+
+
+def test_evaluate_classifier_with_ml_model():
+    """Test evaluation engine using the dedicated ML model."""
+    from app.benchmark.requirement_evaluator import evaluate_classifier
+    report = evaluate_classifier(classifier_mode="ml")
+    assert report.accuracy_pct >= 90.0
+    assert report.total_samples == 120

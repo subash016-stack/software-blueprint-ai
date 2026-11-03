@@ -844,7 +844,8 @@ class RequirementClassificationRequest(BaseModel):
     """Request payload to classify a single or list of requirements."""
     requirement: Optional[str] = Field(None, description="Single requirement text to classify")
     requirements: Optional[List[str]] = Field(None, description="List of requirement texts to classify")
-    use_heuristic: bool = Field(default=True, description="Use deterministic rule engine for instantaneous offline classification")
+    mode: str = Field(default="ml", description="Classifier to use: 'ml' (dedicated Kaggle-trained model), 'llm' (Ollama LLM), or 'heuristic'")
+    use_heuristic: Optional[bool] = Field(default=None, description="Legacy flag: if set, overrides mode (True -> heuristic, False -> llm)")
 
 
 

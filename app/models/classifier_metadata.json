@@ -1,0 +1,61 @@
+{
+  "model_name": "VotingEnsemble (LR+SVC+NB)",
+  "model_file": "requirement_classifier.joblib",
+  "model_type": "TF-IDF + VotingEnsemble (LR+SVC+NB)",
+  "dataset_name": "PROMISE NFR (Kaggle) + Multi-Domain Requirements Benchmark",
+  "dataset_samples": 1089,
+  "cross_validation_5fold": {
+    "LogisticRegression": {
+      "accuracy": 0.8944,
+      "precision": 0.8958,
+      "recall": 0.8928,
+      "f1_macro": 0.8935
+    },
+    "CalibratedLinearSVC": {
+      "accuracy": 0.8981,
+      "precision": 0.8979,
+      "recall": 0.8987,
+      "f1_macro": 0.8977
+    },
+    "MultinomialNB": {
+      "accuracy": 0.9018,
+      "precision": 0.9035,
+      "recall": 0.8999,
+      "f1_macro": 0.9009
+    },
+    "RandomForest": {
+      "accuracy": 0.8292,
+      "precision": 0.8338,
+      "recall": 0.8252,
+      "f1_macro": 0.8266
+    },
+    "VotingEnsemble (LR+SVC+NB)": {
+      "accuracy": 0.91,
+      "precision": 0.9108,
+      "recall": 0.9088,
+      "f1_macro": 0.9093
+    }
+  },
+  "holdout_test_metrics": {
+    "test_accuracy": 0.9037,
+    "test_precision": 0.9079,
+    "test_recall": 0.9001,
+    "test_f1": 0.9024,
+    "confusion_matrix": [
+      [
+        86,
+        15
+      ],
+      [
+        6,
+        111
+      ]
+    ],
+    "feature_importances": {}
+  },
+  "target_classes": [
+    "FR",
+    "NFR"
+  ],
+  "inference_speed_benchmark": "< 0.2ms per requirement"
+}
